@@ -6,8 +6,8 @@ namespace roboticslab
 {
 
 /************************************************************************/
-void SegmentorThread::setIKinectDeviceDriver(yarp::dev::IOpenNI2DeviceDriver *_kinect) {
-    kinect = _kinect;
+void SegmentorThread::setIRGBDSensor(yarp::dev::IRGBDSensor *_iRGBDSensor) {
+    iRGBDSensor = _iRGBDSensor;
 }
 
 /************************************************************************/
@@ -140,13 +140,13 @@ void SegmentorThread::run() {
         return;
     };*/
 
-    yarp::sig::ImageOf<yarp::sig::PixelRgb> inYarpImg = kinect->getImageFrame();
-    if (inYarpImg.height()<10) {
+    yarp::sig::FlexImage inYarpImg;
+    if ( ! iRGBDSensor->getRgbImage(inYarpImg) ) {
         //printf("No img yet...\n");
         return;
     };
-    yarp::sig::ImageOf<yarp::sig::PixelMono16> depth = kinect->getDepthFrame();
-    if (depth.height()<10) {
+    yarp::sig::ImageOf<yarp::sig::PixelFloat> depth;
+    if ( ! iRGBDSensor->getDepthImage(depth) ) {
         //printf("No depth yet...\n");
         return;
     };
@@ -159,13 +159,18 @@ void SegmentorThread::run() {
 
     // publish the original yarp img if crop selector invoked.
     if(cropSelector != 0) {
+        // WARNING! Probably worth debugging! ToDo.
+        yarp::sig::ImageOf<yarp::sig::PixelRgb> inYarpImgRgb;
+        //inYarpImg.copy(inYarpFlexImg);
+        inYarpImg.wrapIplImage(inYarpImgRgb.getIplImage());
+
         //printf("1 x: %d, y: %d, w: %d, h: %d.\n",processor.x,processor.y,processor.w,processor.h);
         if( (processor.w!=0)&&(processor.h!=0)) {
             travisCrop(processor.x,processor.y,processor.w,processor.h,inCvMat);
             yarp::sig::PixelRgb green(0,255,0);
-            yarp::sig::draw::addRectangleOutline(inYarpImg,green,processor.x+processor.w/2.0,processor.y+processor.h/2.0,processor.w/2.0,processor.h/2.0);
+            yarp::sig::draw::addRectangleOutline(inYarpImgRgb,green,processor.x+processor.w/2.0,processor.y+processor.h/2.0,processor.w/2.0,processor.h/2.0);
         }
-        outCropSelectorImg->prepare() = inYarpImg;
+        outCropSelectorImg->prepare() = inYarpImgRgb;
         outCropSelectorImg->write();
     }
 

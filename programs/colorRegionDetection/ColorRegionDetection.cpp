@@ -39,18 +39,22 @@ bool ColorRegionDetection::configure(yarp::os::ResourceFinder &rf) {
         yarp::os::Property options;
         options.fromString( rf.toString() );  //-- Should get noMirror, noRGBMirror, noDepthMirror, video modes...
         options.put("device",strKinectDevice);  //-- Important to override in case there is a "device" in the future
-        options.put("localName",strKinectLocal);  //
-        options.put("remoteName",strKinectRemote);  //
+        options.put("localImagePort",strKinectLocal+"/rgb:i");  //
+        options.put("localDepthPort",strKinectLocal+"/depth:i");  //
+        options.put("localRpcPort",strKinectLocal+"/rpc:s");  //
+        options.put("remoteImagePort",strKinectRemote+"/rgb:o");  //
+        options.put("remoteDepthPort",strKinectRemote+"/depth:o");  //
+        options.put("remoteRpcPort",strKinectRemote+"/rpc:c");  //
         //if(rf.check("noMirror")) options.put("noMirror",1);  //-- Replaced by options.fromString( rf.toString() );
         while(!dd.open(options)) {
             printf("Waiting for kinectDevice \"%s\"...\n",strKinectDevice.c_str());
             yarp::os::Time::delay(1);
         }
         printf("[ColorRegionDetection] success: kinectDevice available.\n");
-        if (! dd.view(kinect) ) fprintf(stderr,"[ColorRegionDetection] warning: kinectDevice bad view.\n");
+        if (! dd.view(iRGBDSensor) ) fprintf(stderr,"[ColorRegionDetection] warning: kinectDevice bad view iRGBDSensor.\n");
         else printf("[ColorRegionDetection] success: kinectDevice ok view.\n");
 
-        segmentorThread.setIKinectDeviceDriver(kinect);
+        segmentorThread.setIRGBDSensor(iRGBDSensor);
         segmentorThread.setOutImg(&outImg);
         segmentorThread.setOutPort(&outPort);
 

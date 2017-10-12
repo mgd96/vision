@@ -281,7 +281,6 @@ void SegmentorThread::run() {
 
     // Take advantage we have the travis object and get features for text output
     yarp::os::Bottle output;
-    output.addString("Salida: ");
     for (int elem = 0; elem < outFeatures.size() ; elem++) {
         if ( outFeatures.get(elem).asString() == "mmX" ) {
             if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal

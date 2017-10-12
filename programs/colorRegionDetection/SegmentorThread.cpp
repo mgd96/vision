@@ -5,9 +5,15 @@
 namespace roboticslab
 {
 
+
 /************************************************************************/
-void SegmentorThread::setIKinectDeviceDriver(yarp::dev::IOpenNI2DeviceDriver *_kinect) {
-    kinect = _kinect;
+void SegmentorThread::setInDepthSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inDepthPort) { 
+    inDepthPort = _inDepthPort;
+}
+
+/************************************************************************/
+void SegmentorThread::setInImageSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inImagePort) { 
+    inImagePort = _inImagePort;
 }
 
 /************************************************************************/
@@ -138,7 +144,7 @@ void SegmentorThread::run() {
     if (depth==NULL) {
         //printf("No depth yet...\n");
         return;
-    };*/
+    };
 
     yarp::sig::ImageOf<yarp::sig::PixelRgb> inYarpImg = kinect->getImageFrame();
     if (inYarpImg.height()<10) {
@@ -149,17 +155,42 @@ void SegmentorThread::run() {
     if (depth.height()<10) {
         //printf("No depth yet...\n");
         return;
-    };
+    };*/
 
+
+    sensor_msgs_Image *imageFrame;
+    sensor_msgs_Image *depthFrame;
+    
+    imageFrame = inImagePort->read(FALSE);
+    if (imageFrame == YARP_NULLPTR) {
+        //printf("Image not ready.\n");
+        return;
+    }
+    
+    depthFrame = inDepthPort->read(FALSE);
+    if (depthFrame == YARP_NULLPTR) {
+        //printf("Depth mage not ready.\n");
+        return;
+    }
+
+    // Convert ROS image to CV Mat
+    cv::Mat inCvMat((int)imageFrame->height, (int)imageFrame->width, CV_8UC3, imageFrame->data.data(), (int)imageFrame->step);
+
+    /*
     // {yarp ImageOf Rgb -> openCv Mat Bgr}
     IplImage *inIplImage = cvCreateImage(cvSize(inYarpImg.width(), inYarpImg.height()),
                                          IPL_DEPTH_8U, 3 );
     cvCvtColor((IplImage*)inYarpImg.getIplImage(), inIplImage, CV_RGB2BGR);
     cv::Mat inCvMat( cv::cvarrToMat(inIplImage) );
+    */
 
     // publish the original yarp img if crop selector invoked.
     if(cropSelector != 0) {
         //printf("1 x: %d, y: %d, w: %d, h: %d.\n",processor.x,processor.y,processor.w,processor.h);
+        IplImage inIplImage = inCvMat;
+        yarp::sig::ImageOf<yarp::sig::PixelRgb> inYarpImg;
+        inYarpImg.wrapIplImage(&inIplImage);
+        
         if( (processor.w!=0)&&(processor.h!=0)) {
             travisCrop(processor.x,processor.y,processor.w,processor.h,inCvMat);
             yarp::sig::PixelRgb green(0,255,0);
@@ -176,8 +207,8 @@ void SegmentorThread::run() {
     if(algorithm=="hue") travis.binarize("hue", threshold-5,threshold+5);
     else if(algorithm=="canny") travis.binarize("canny");
     else travis.binarize(algorithm.c_str(), threshold);
-    travis.morphOpening( inYarpImg.width() * morphOpening / 100.0 );  // percent
-    travis.morphClosing( inYarpImg.width() * morphClosing / 100.0 );  // percent
+    travis.morphOpening( imageFrame->width * morphOpening / 100.0 );  // percent
+    travis.morphClosing( imageFrame->width * morphClosing / 100.0 );  // percent
     //travis.morphOpening( morphOpening );
     //travis.morphClosing( morphClosing );
     travis.blobize(maxNumBlobs);
@@ -224,11 +255,11 @@ void SegmentorThread::run() {
             blobsXY[i].y = 0;
         }
         // double mmZ_tmp = depth->pixel(int(blobsXY[i].x +cx_d-cx_rgb),int(blobsXY[i].y +cy_d-cy_rgb));
-        double mmZ_tmp = depth.pixel(int(blobsXY[i].x),int(blobsXY[i].y));
+        //double mmZ_tmp = depth.pixel(int(blobsXY[i].x),int(blobsXY[i].y));
+        double mmZ_tmp = depthFrame->data.at(int(blobsXY[i].x)*depthFrame->width + int(blobsXY[i].y));
 
         if (mmZ_tmp < 0.001) {
             fprintf(stderr,"[warning] SegmentorThread run(): mmZ_tmp[%d] < 0.001.\n",i);
-            cvReleaseImage( &inIplImage );  // release the memory for the image
             outCvMat.release();
             return;
         }
@@ -244,13 +275,13 @@ void SegmentorThread::run() {
 
     pOutImg->prepare() = outYarpImg;
     pOutImg->write();
-    cvReleaseImage( &inIplImage );  // release the memory for the image
-    outCvMat.release();  // cvReleaseImage( &outIplImage );  // release the memory for the image
+    outCvMat.release();  // release the memory for the image
 
     if ( ( blobsXY.size() < 1) && ( outFeaturesFormat == 1 ) ) return;
 
     // Take advantage we have the travis object and get features for text output
     yarp::os::Bottle output;
+    output.addString("Salida: ");
     for (int elem = 0; elem < outFeatures.size() ; elem++) {
         if ( outFeatures.get(elem).asString() == "mmX" ) {
             if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
@@ -447,6 +478,7 @@ void SegmentorThread::run() {
             ::exit(0);
         }
     }
+
     pOutPort->write(output);
 
 }

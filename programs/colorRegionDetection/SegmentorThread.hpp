@@ -8,11 +8,12 @@
 #include <yarp/os/Port.h>
 #include <yarp/os/BufferedPort.h>
 #include <yarp/os/RateThread.h>
+#include <yarp/os/Subscriber.h>
 
 #include <yarp/dev/all.h>
-#include <yarp/dev/IOpenNI2DeviceDriver.h>
-
 #include <yarp/sig/all.h>
+
+#include "msg/sensor_msgs_Image.h"
 
 #include <cv.h>
 //#include <highgui.h> // to show windows
@@ -103,10 +104,12 @@ public:
  */
 class SegmentorThread : public yarp::os::RateThread {
 private:
-    yarp::dev::IOpenNI2DeviceDriver *kinect;
+    yarp::os::Subscriber<sensor_msgs_Image> *inImagePort;
+    yarp::os::Subscriber<sensor_msgs_Image> *inDepthPort;
+    
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > *pOutImg;  // for testing
     yarp::os::Port *pOutPort;
-    //
+
     yarp::os::ConstString algorithm;
     yarp::os::ConstString locate;
     int maxNumBlobs;
@@ -129,7 +132,8 @@ private:
 public:
     SegmentorThread() : RateThread(DEFAULT_RATE_MS) {}
 
-    void setIKinectDeviceDriver(yarp::dev::IOpenNI2DeviceDriver * _kinect);
+    void setInDepthSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inDepthPort);
+    void setInImageSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inImagePort);
     void setOutImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > * _pOutImg);
     void setOutPort(yarp::os::Port *_pOutPort);
     void init(yarp::os::ResourceFinder &rf);

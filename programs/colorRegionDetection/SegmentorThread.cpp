@@ -5,6 +5,20 @@
 namespace roboticslab
 {
 
+/************************************************************************/
+void SegmentorThread::setCropSelector(int _cropSelector) { 
+    cropSelector = _cropSelector; 
+}
+
+/************************************************************************/
+void SegmentorThread::setOutCropSelectorImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* _outCropSelectorImg) { 
+    outCropSelectorImg = _outCropSelectorImg; 
+}
+
+/************************************************************************/
+void SegmentorThread::setInCropSelectorPort(yarp::os::Port* _inCropSelectorPort) { 
+    inCropSelectorPort = _inCropSelectorPort; 
+}
 
 /************************************************************************/
 void SegmentorThread::setInDepthSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inDepthPort) { 
@@ -135,28 +149,6 @@ default: \"(%s)\")\n",outFeatures.toString().c_str());
 void SegmentorThread::run() {
     // printf("[SegmentorThread] run()\n");
 
-    /*ImageOf<PixelRgb> *inYarpImg = pInImg->read(false);
-    ImageOf<PixelFloat> *depth = pInDepth->read(false);
-    if (inYarpImg==NULL) {
-        //printf("No img yet...\n");
-        return;
-    };
-    if (depth==NULL) {
-        //printf("No depth yet...\n");
-        return;
-    };
-
-    yarp::sig::ImageOf<yarp::sig::PixelRgb> inYarpImg = kinect->getImageFrame();
-    if (inYarpImg.height()<10) {
-        //printf("No img yet...\n");
-        return;
-    };
-    yarp::sig::ImageOf<yarp::sig::PixelMono16> depth = kinect->getDepthFrame();
-    if (depth.height()<10) {
-        //printf("No depth yet...\n");
-        return;
-    };*/
-
 
     sensor_msgs_Image *imageFrame;
     sensor_msgs_Image *depthFrame;
@@ -176,13 +168,6 @@ void SegmentorThread::run() {
     // Convert ROS image to CV Mat
     cv::Mat inCvMat((int)imageFrame->height, (int)imageFrame->width, CV_8UC3, imageFrame->data.data(), (int)imageFrame->step);
 
-    /*
-    // {yarp ImageOf Rgb -> openCv Mat Bgr}
-    IplImage *inIplImage = cvCreateImage(cvSize(inYarpImg.width(), inYarpImg.height()),
-                                         IPL_DEPTH_8U, 3 );
-    cvCvtColor((IplImage*)inYarpImg.getIplImage(), inIplImage, CV_RGB2BGR);
-    cv::Mat inCvMat( cv::cvarrToMat(inIplImage) );
-    */
 
     // publish the original yarp img if crop selector invoked.
     if(cropSelector != 0) {
@@ -479,7 +464,6 @@ void SegmentorThread::run() {
     }
 
     pOutPort->write(output);
-
 }
 
 }  // namespace roboticslab

@@ -104,12 +104,22 @@ public:
  */
 class SegmentorThread : public yarp::os::RateThread {
 private:
+
+    // Ports to get source data (from ROS topics)
     yarp::os::Subscriber<sensor_msgs_Image> *inImagePort;
     yarp::os::Subscriber<sensor_msgs_Image> *inDepthPort;
     
+    // Output YARP ports
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > *pOutImg;  // for testing
     yarp::os::Port *pOutPort;
 
+    // Crop selector YARP ports
+    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* outCropSelectorImg;
+    yarp::os::Port* inCropSelectorPort;
+
+    int cropSelector;
+
+    // Parameters for the image segmentation
     yarp::os::ConstString algorithm;
     yarp::os::ConstString locate;
     int maxNumBlobs;
@@ -124,24 +134,23 @@ private:
     //
     yarp::os::Bottle outFeatures;
     //
-    int cropSelector;
-    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* outCropSelectorImg;
-    yarp::os::Port* inCropSelectorPort;
+
     DataProcessor processor;
 
 public:
     SegmentorThread() : RateThread(DEFAULT_RATE_MS) {}
 
+    void init(yarp::os::ResourceFinder &rf);
+    void run();  // The periodical function
+
+
     void setInDepthSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inDepthPort);
     void setInImageSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inImagePort);
     void setOutImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > * _pOutImg);
     void setOutPort(yarp::os::Port *_pOutPort);
-    void init(yarp::os::ResourceFinder &rf);
-    void run();  // The periodical function
-
-    void setCropSelector(int cropSelector) { this->cropSelector = cropSelector; }
-    void setOutCropSelectorImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* outCropSelectorImg) { this->outCropSelectorImg = outCropSelectorImg; }
-    void setInCropSelectorPort(yarp::os::Port* inCropSelectorPort) { this->inCropSelectorPort = inCropSelectorPort; }
+    void setCropSelector(int _cropSelector);
+    void setOutCropSelectorImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* _outCropSelectorImg);
+    void setInCropSelectorPort(yarp::os::Port* _inCropSelectorPort);
     
 };
 

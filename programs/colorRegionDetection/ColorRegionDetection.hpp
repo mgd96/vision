@@ -30,15 +30,19 @@ class ColorRegionDetection : public yarp::os::RFModule {
   private:
     SegmentorThread segmentorThread;
 
+    // Ports to get source data (from ROS topics)
     yarp::os::Subscriber<sensor_msgs_Image> inImagePort;
     yarp::os::Subscriber<sensor_msgs_Image> inDepthPort;
 
+    // Output YARP ports
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > outImg;
     yarp::os::Port outPort;
 
-    int cropSelector;
+    // Crop selector YARP ports
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > outCropSelectorImg;
     yarp::os::Port inCropSelectorPort;
+
+    int cropSelector;
 
     bool interruptModule();
     double getPeriod();

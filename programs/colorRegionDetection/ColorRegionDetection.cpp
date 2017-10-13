@@ -77,18 +77,21 @@ bool ColorRegionDetection::configure(yarp::os::ResourceFinder &rf) {
             printf("[OK]\n");
         }
         
+        printf("Configuring segmentor thread:\n");
         segmentorThread.setInImageSubscriber(&inImagePort);
         segmentorThread.setInDepthSubscriber(&inDepthPort);
         segmentorThread.setOutImg(&outImg);
         segmentorThread.setOutPort(&outPort);
         segmentorThread.setCropSelector(cropSelector);
         if(cropSelector != 0) {
+            printf("\t- Crop selector ENABLED\n");
             segmentorThread.setOutCropSelectorImg(&outCropSelectorImg);
             segmentorThread.setInCropSelectorPort(&inCropSelectorPort);
         }
-
     }
-
+    
+    
+    printf("Launch segmentor thread");
     segmentorThread.init(rf);
     return true;
 }
@@ -101,8 +104,19 @@ double ColorRegionDetection::getPeriod() {
 /************************************************************************/
 
 bool ColorRegionDetection::updateModule() {
-    printf("ColorRegionDetection alive...\n");
-    return true;
+    
+    if (segmentorThread.isRunning()) {
+        printf("ColorRegionDetection alive...\n");
+        return true;
+    }
+    else if (segmentorThread.isSuspended()) {
+        printf("Segmentor thread is suspended... \n");
+        return true;
+    }
+    else {
+        printf("Segmentor thread is NOT running... \n");
+        return false;
+    }
 }
 
 /************************************************************************/

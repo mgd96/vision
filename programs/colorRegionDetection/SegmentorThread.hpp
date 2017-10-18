@@ -13,7 +13,8 @@
 #include <yarp/dev/all.h>
 #include <yarp/sig/all.h>
 
-#include "msg/sensor_msgs_Image.h"
+#include "RosImageTransport.hpp"
+#include "sensor_msgs_CompressedImage.h"
 
 #include <cv.h>
 //#include <highgui.h> // to show windows
@@ -49,6 +50,9 @@
 
 namespace roboticslab
 {
+
+typedef sensor_msgs_CompressedImage Image_t;
+typedef sensor_msgs_CompressedImage	DepthImage_t;
 
 /**
  * @ingroup colorRegionDetection
@@ -106,8 +110,8 @@ class SegmentorThread : public yarp::os::RateThread {
 private:
 
     // Ports to get source data (from ROS topics)
-    yarp::os::Subscriber<sensor_msgs_Image> *inImagePort;
-    yarp::os::Subscriber<sensor_msgs_Image> *inDepthPort;
+    yarp::os::Subscriber<Image_t> *inImagePort;
+    yarp::os::Subscriber<DepthImage_t> *inDepthPort;
     
     // Output YARP ports
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > *pOutImg;  // for testing
@@ -144,8 +148,8 @@ public:
     void run();  // The periodical function
 
 
-    void setInDepthSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inDepthPort);
-    void setInImageSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inImagePort);
+    void setInDepthSubscriber(yarp::os::Subscriber<DepthImage_t> *_inDepthPort);
+    void setInImageSubscriber(yarp::os::Subscriber<Image_t> *_inImagePort);
     void setOutImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > * _pOutImg);
     void setOutPort(yarp::os::Port *_pOutPort);
     void setCropSelector(int _cropSelector);

@@ -76,6 +76,7 @@ Mat decodeDepth(sensor_msgs_CompressedImage *message) {
 				}
 				else {
 					*itDepthImg = std::numeric_limits<float>::quiet_NaN();
+					//*itDepthImg = 0.0;
 				}
 			}
 		}

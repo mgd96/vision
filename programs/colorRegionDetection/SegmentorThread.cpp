@@ -21,12 +21,12 @@ void SegmentorThread::setInCropSelectorPort(yarp::os::Port* _inCropSelectorPort)
 }
 
 /************************************************************************/
-void SegmentorThread::setInDepthSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inDepthPort) { 
+void SegmentorThread::setInDepthSubscriber(yarp::os::Subscriber<DepthImage_t> *_inDepthPort) { 
     inDepthPort = _inDepthPort;
 }
 
 /************************************************************************/
-void SegmentorThread::setInImageSubscriber(yarp::os::Subscriber<sensor_msgs_Image> *_inImagePort) { 
+void SegmentorThread::setInImageSubscriber(yarp::os::Subscriber<Image_t> *_inImagePort) { 
     inImagePort = _inImagePort;
 }
 
@@ -124,7 +124,6 @@ default: \"(%s)\")\n",outFeatures.toString().c_str());
     printf("SegmentorThread using outFeatures: (%s).\n", outFeatures.toString().c_str());
 
     if (rf.check("outImage")) outImage = rf.find("outImage").asInt();
-    if (rf.check("rateMs")) rateMs = rf.find("rateMs").asInt();
     if (rf.check("threshold")) threshold = rf.find("threshold").asInt();
     if (rf.check("seeBounding")) seeBounding = rf.find("seeBounding").asInt();
     printf("SegmentorThread using outImage: %d, rateMs: %d, seeBounding: %d, threshold: %d.\n",
@@ -150,8 +149,8 @@ void SegmentorThread::run() {
     // printf("[SegmentorThread] run()\n");
 
 
-    sensor_msgs_Image *imageFrame;
-    sensor_msgs_Image *depthFrame;
+    Image_t *imageFrame;
+    DepthImage_t *depthFrame;
     
     imageFrame = inImagePort->read(FALSE);
     if (imageFrame == YARP_NULLPTR) {
@@ -166,8 +165,9 @@ void SegmentorThread::run() {
     }
 
     // Convert ROS image to CV Mat
-    cv::Mat inCvMat((int)imageFrame->height, (int)imageFrame->width, CV_8UC3, imageFrame->data.data(), (int)imageFrame->step);
-
+    //cv::Mat inCvMat((int)imageFrame->height, (int)imageFrame->width, CV_8UC3, imageFrame->data.data(), (int)imageFrame->step);
+    cv::Mat inCvMat = decodeImage(imageFrame);
+	cv::Mat inDepthMat = decodeDepth(depthFrame);
 
     // publish the original yarp img if crop selector invoked.
     if(cropSelector != 0) {
@@ -187,13 +187,14 @@ void SegmentorThread::run() {
 
     // Because Travis stuff goes with [openCv Mat Bgr] for now
     //Travis travis;  // ::Travis(quiet=true, overwrite=true);
+    cvtColor(inCvMat, inCvMat, cv::COLOR_RGB2BGR);
     Travis travis(false,true);  // ::Travis(quiet=true, overwrite=true);
     travis.setCvMat(inCvMat);
     if(algorithm=="hue") travis.binarize("hue", threshold-5,threshold+5);
     else if(algorithm=="canny") travis.binarize("canny");
     else travis.binarize(algorithm.c_str(), threshold);
-    travis.morphOpening( imageFrame->width * morphOpening / 100.0 );  // percent
-    travis.morphClosing( imageFrame->width * morphClosing / 100.0 );  // percent
+    travis.morphOpening( inCvMat.size().width * morphOpening / 100.0 );  // percent
+    travis.morphClosing( inCvMat.size().width * morphClosing / 100.0 );  // percent
     //travis.morphOpening( morphOpening );
     //travis.morphClosing( morphClosing );
     travis.blobize(maxNumBlobs);
@@ -241,8 +242,12 @@ void SegmentorThread::run() {
         }
         // double mmZ_tmp = depth->pixel(int(blobsXY[i].x +cx_d-cx_rgb),int(blobsXY[i].y +cy_d-cy_rgb));
         //double mmZ_tmp = depth.pixel(int(blobsXY[i].x),int(blobsXY[i].y));
-        double mmZ_tmp = depthFrame->data.at(int(blobsXY[i].x)*depthFrame->width + int(blobsXY[i].y));
+        //double mmZ_tmp = depthFrame->data.at(int(blobsXY[i].x)*depthFrame->width + int(blobsXY[i].y));
+        
+		double mmZ_tmp = inDepthMat.at<float>(int(blobsXY[i].x)*inDepthMat.size().width + int(blobsXY[i].y));
 
+        printf("Location: (%d, %d, %d) = %d\n", int(blobsXY[i].x) , int(blobsXY[i].y), inDepthMat.size().width, int(blobsXY[i].x)*inDepthMat.size().width + int(blobsXY[i].y));
+        
         if (mmZ_tmp < 0.001) {
             fprintf(stderr,"[warning] SegmentorThread run(): mmZ_tmp[%d] < 0.001.\n",i);
             outCvMat.release();

@@ -7,8 +7,8 @@
 
 #define DEFAULT_CROP_SELECTOR 1  // 1=true
 
-#define DEFAULT_IMAGE_TOPIC     "/xtion/rgb/image_raw"
-#define DEFAULT_DEPTH_TOPIC     "/xtion/depth_registered/image_raw"
+#define DEFAULT_IMAGE_TOPIC     "/xtion/rgb/image_raw/compressed"
+#define DEFAULT_DEPTH_TOPIC     "/xtion/depth_registered/image_raw/compressedDepth"
 #define DEFAULT_PORT_NAMESPACE  "/colorRegionDetection"
 #define DEFAULT_IMAGEOUT_PORT   (DEFAULT_PORT_NAMESPACE "/image:o")
 #define DEFAULT_STATEOUT_PORT   (DEFAULT_PORT_NAMESPACE "/state:o")
@@ -31,8 +31,8 @@ class ColorRegionDetection : public yarp::os::RFModule {
     SegmentorThread segmentorThread;
 
     // Ports to get source data (from ROS topics)
-    yarp::os::Subscriber<sensor_msgs_Image> inImagePort;
-    yarp::os::Subscriber<sensor_msgs_Image> inDepthPort;
+    yarp::os::Subscriber<Image_t> inImagePort;
+    yarp::os::Subscriber<DepthImage_t> inDepthPort;
 
     // Output YARP ports
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > outImg;

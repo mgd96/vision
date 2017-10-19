@@ -9,7 +9,7 @@
 
 #define DEFAULT_IMAGE_TOPIC     "/xtion/rgb/image_raw/compressed"
 #define DEFAULT_DEPTH_TOPIC     "/xtion/depth_registered/image_raw/compressedDepth"
-#define DEFAULT_PORT_NAMESPACE  "/colorRegionDetection"
+#define DEFAULT_PORT_NAMESPACE  "/haarCascadeClassifier"
 #define DEFAULT_IMAGEOUT_PORT   (DEFAULT_PORT_NAMESPACE "/image:o")
 #define DEFAULT_STATEOUT_PORT   (DEFAULT_PORT_NAMESPACE "/state:o")
 #define DEFAULT_CROP_IMAGEOUT_PORT  (DEFAULT_PORT_NAMESPACE "/cropSelector/image:o")

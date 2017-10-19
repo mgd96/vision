@@ -5,10 +5,16 @@
 
 #include "SegmentorThread.hpp"
 
-#define DEFAULT_CROP_SELECTOR 0  // 1=true
-#define DEFAULT_KINECT_DEVICE "OpenNI2DeviceServer"
-#define DEFAULT_KINECT_LOCAL "/haarDetection"
-#define DEFAULT_KINECT_REMOTE "/OpenNI2"
+#define DEFAULT_CROP_SELECTOR 1  // 1=true
+
+#define DEFAULT_IMAGE_TOPIC     "/xtion/rgb/image_raw/compressed"
+#define DEFAULT_DEPTH_TOPIC     "/xtion/depth_registered/image_raw/compressedDepth"
+#define DEFAULT_PORT_NAMESPACE  "/colorRegionDetection"
+#define DEFAULT_IMAGEOUT_PORT   (DEFAULT_PORT_NAMESPACE "/image:o")
+#define DEFAULT_STATEOUT_PORT   (DEFAULT_PORT_NAMESPACE "/state:o")
+#define DEFAULT_CROP_IMAGEOUT_PORT  (DEFAULT_PORT_NAMESPACE "/cropSelector/image:o")
+#define DEFAULT_CROP_STATEIN_PORT   (DEFAULT_PORT_NAMESPACE "/cropSelector/state:i")
+
 #define DEFAULT_WATCHDOG    2       // [s]
 
 
@@ -23,16 +29,20 @@ namespace roboticslab
 class HaarDetection : public yarp::os::RFModule {
   private:
     SegmentorThread segmentorThread;
-    //
-    yarp::dev::PolyDriver dd;
-    yarp::dev::IOpenNI2DeviceDriver *kinect;
 
+    // Ports to get source data (from ROS topics)
+    yarp::os::Subscriber<Image_t> inImagePort;
+    yarp::os::Subscriber<DepthImage_t> inDepthPort;
+
+    // Output YARP ports
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > outImg;
     yarp::os::Port outPort;
 
-    int cropSelector;
+    // Crop selector YARP ports
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > outCropSelectorImg;
     yarp::os::Port inCropSelectorPort;
+
+    int cropSelector;
 
     bool interruptModule();
     double getPeriod();

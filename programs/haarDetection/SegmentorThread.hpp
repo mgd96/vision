@@ -8,11 +8,13 @@
 #include <yarp/os/Port.h>
 #include <yarp/os/BufferedPort.h>
 #include <yarp/os/RateThread.h>
+#include <yarp/os/Subscriber.h>
 
 #include <yarp/dev/all.h>
-#include <yarp/dev/IOpenNI2DeviceDriver.h>
-
 #include <yarp/sig/all.h>
+
+#include "RosImageTransport.hpp"
+#include "sensor_msgs_CompressedImage.h"
 
 #include <cv.h>
 //#include <highgui.h> // to show windows
@@ -36,6 +38,9 @@
 
 namespace roboticslab
 {
+
+typedef sensor_msgs_CompressedImage Image_t;
+typedef sensor_msgs_CompressedImage	DepthImage_t;
 
 /**
  * @ingroup haarDetection
@@ -91,15 +96,25 @@ public:
  */
 class SegmentorThread : public yarp::os::RateThread {
 private:
-    yarp::dev::IOpenNI2DeviceDriver *kinect;
+
+    // Ports to get source data (from ROS topics)
+    yarp::os::Subscriber<Image_t> *inImagePort;
+    yarp::os::Subscriber<DepthImage_t> *inDepthPort;
+    
+    // Output YARP ports
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > *pOutImg;  // for testing
     yarp::os::Port *pOutPort;
+
+    // Crop selector YARP ports
+    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* outCropSelectorImg;
+    yarp::os::Port* inCropSelectorPort;
+
+    int cropSelector;
+    
     //
     double fx_d,fy_d,cx_d,cy_d;
     //
-    int cropSelector;
-    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* outCropSelectorImg;
-    yarp::os::Port* inCropSelectorPort;
+
     DataProcessor processor;
 
     cv::CascadeClassifier face_cascade;
@@ -108,15 +123,17 @@ private:
 public:
     SegmentorThread() : RateThread(DEFAULT_RATE_MS) {}
 
-    void setIKinectDeviceDriver(yarp::dev::IOpenNI2DeviceDriver * _kinect);
-    void setOutImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > * _pOutImg);
-    void setOutPort(yarp::os::Port *_pOutPort);
     void init(yarp::os::ResourceFinder &rf);
     void run();  // The periodical function
 
-    void setCropSelector(int cropSelector) { this->cropSelector = cropSelector; }
-    void setOutCropSelectorImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* outCropSelectorImg) { this->outCropSelectorImg = outCropSelectorImg; }
-    void setInCropSelectorPort(yarp::os::Port* inCropSelectorPort) { this->inCropSelectorPort = inCropSelectorPort; }
+
+    void setInDepthSubscriber(yarp::os::Subscriber<DepthImage_t> *_inDepthPort);
+    void setInImageSubscriber(yarp::os::Subscriber<Image_t> *_inImagePort);
+    void setOutImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > * _pOutImg);
+    void setOutPort(yarp::os::Port *_pOutPort);
+    void setCropSelector(int _cropSelector);
+    void setOutCropSelectorImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* _outCropSelectorImg);
+    void setInCropSelectorPort(yarp::os::Port* _inCropSelectorPort);
 
 };
 

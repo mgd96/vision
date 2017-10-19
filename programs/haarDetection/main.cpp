@@ -49,6 +49,7 @@
 
 */
 
+#include <yarp/os/all.h>
 #include "HaarDetection.hpp"
 
 int main(int argc, char** argv) {
@@ -72,6 +73,8 @@ int main(int argc, char** argv) {
         fprintf(stderr,"[fail]\n%s found no yarp network (try running \"yarpserver &\"), bye!\n",argv[0]);
         return -1;
     } else printf("[ok]\n");
+
+    yarp::os::Node rosNode("/haarDetection");
 
     return mod.runModule(rf);
 }

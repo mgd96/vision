@@ -9,6 +9,23 @@
 #include <yarp/os/BufferedPort.h>
 #include <yarp/os/RateThread.h>
 
+
+//includes
+#include <stdio.h>
+#include <string>
+
+#include<iostream>
+#include "opencv2/video/tracking.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
+#include "opencv2/highgui/highgui.hpp"
+#include "math.h";
+
+using namespace std;
+using namespace cv;
+
+
+
 #include <yarp/dev/all.h>
 #include <yarp/dev/IOpenNI2DeviceDriver.h>
 
@@ -32,6 +49,7 @@
 #define DEFAULT_FY_RGB        525.0  //
 #define DEFAULT_CX_RGB        319.5  //
 #define DEFAULT_CY_RGB        239.5  //
+#define pi  3.141592654
 
 #define DEFAULT_ALGORITHM "blueMinusRed"
 #define DEFAULT_LOCATE "centroid"
@@ -44,6 +62,23 @@
 #define DEFAULT_RATE_MS 20
 #define DEFAULT_SEE_BOUNDING 3
 #define DEFAULT_THRESHOLD 55
+
+#define DEFAULT_FX_D          525.0  // 640x480
+
+#define DEFAULT_FY_D          525.0  //
+
+#define DEFAULT_CX_D          319.5  //
+
+#define DEFAULT_CY_D          239.5  //
+
+#define DEFAULT_FX_RGB        525.0  //
+
+#define DEFAULT_FY_RGB        525.0  //
+
+#define DEFAULT_CX_RGB        319.5  //
+
+#define DEFAULT_CY_RGB        239.5  //
+
 
 
 namespace roboticslab
@@ -116,7 +151,35 @@ private:
     int outImage;
     int seeBounding;
     int threshold;
-    //
+
+
+
+    //global
+    int boardHeight = 6;
+    int boardWidth = 9;
+    int times = 0;
+    double c1;
+    double c2;
+    double c1_2;
+    double c2_2;
+    double angle;
+    double angle_2;
+    Size cbSize = Size(boardHeight, boardWidth);
+
+    string filename = "//home//teo//Descargas//calib//DataCam.yml";
+    bool doneYet = false;
+
+    //default image size
+    const int FRAME_WIDTH = 640;
+    const int FRAME_HEIGHT = 480;
+
+
+    Mat inCvMat;
+    Mat outCvMat;
+
+
+
+    // end global
     double fx_d,fy_d,cx_d,cy_d,fx_rgb,fy_rgb,cx_rgb,cy_rgb;
     //
     yarp::os::Bottle outFeatures;

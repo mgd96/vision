@@ -64,8 +64,8 @@ void SegmentorThread::init(yarp::os::ResourceFinder &rf) {
         printf("\t--morphClosing (percentage, 2 or 4 okay; default: \"%f\")\n",morphClosing);
         printf("\t--morphOpening (percentage, 2 or 4 okay; default: \"%f\")\n",morphOpening);
         printf("\t--outFeatures (mmX,mmY,mmZ,pxXpos,pxYpos,pxX,pxY,angle,area,aspectRatio,rectangularity,axisFirst,axisSecond \
-solidity,hue,sat,val,hueStdDev,satStdDev,valStdDev,time; \
-default: \"(%s)\")\n",outFeatures.toString().c_str());
+               solidity,hue,sat,val,hueStdDev,satStdDev,valStdDev,time; \
+                default: \"(%s)\")\n",outFeatures.toString().c_str());
         printf("\t--outFeaturesFormat (0=bottled,1=minimal; default: \"%d\")\n",outFeaturesFormat);
         printf("\t--outImage (0=rgb,1=bin; default: \"%d\")\n",outImage);
         printf("\t--rateMs (default: \"%d\")\n",rateMs);
@@ -90,17 +90,17 @@ default: \"(%s)\")\n",outFeatures.toString().c_str());
     if (rf.check("outFeaturesFormat")) outFeaturesFormat = rf.find("outFeaturesFormat").asInt();
 
     printf("SegmentorThread using fx_d: %f, fy_d: %f, cx_d: %f, cy_d: %f.\n",
-        fx_d,fy_d,cx_d,cy_d);
+           fx_d,fy_d,cx_d,cy_d);
     printf("SegmentorThread using fx_rgb: %f, fy_rgb: %f, cx_rgb: %f, cy_rgb: %f.\n",
-        fx_rgb,fy_rgb,cx_rgb,cy_rgb);
+           fx_rgb,fy_rgb,cx_rgb,cy_rgb);
     printf("SegmentorThread using algorithm: %s, locate: %s.\n",
-        algorithm.c_str(),locate.c_str());
+           algorithm.c_str(),locate.c_str());
     printf("SegmentorThread using maxNumBlobs: %d, morphClosing: %.2f, outFeaturesFormat: %d.\n",
-        maxNumBlobs,morphClosing,outFeaturesFormat);
+           maxNumBlobs,morphClosing,outFeaturesFormat);
 
     if (rf.check("outFeatures")) {
         outFeatures = *(rf.find("outFeatures").asList());  // simple overrride
-    }   
+    }
     printf("SegmentorThread using outFeatures: (%s).\n", outFeatures.toString().c_str());
 
     if (rf.check("outImage")) outImage = rf.find("outImage").asInt();
@@ -108,7 +108,7 @@ default: \"(%s)\")\n",outFeatures.toString().c_str());
     if (rf.check("threshold")) threshold = rf.find("threshold").asInt();
     if (rf.check("seeBounding")) seeBounding = rf.find("seeBounding").asInt();
     printf("SegmentorThread using outImage: %d, rateMs: %d, seeBounding: %d, threshold: %d.\n",
-        outImage, rateMs, seeBounding, threshold);
+           outImage, rateMs, seeBounding, threshold);
 
     printf("--------------------------------------------------------------\n");
     if(rf.check("help")) {
@@ -127,337 +127,271 @@ default: \"(%s)\")\n",outFeatures.toString().c_str());
 
 /************************************************************************/
 void SegmentorThread::run() {
-    // printf("[SegmentorThread] run()\n");
+    fx_d = DEFAULT_FX_D;
+    fy_d = DEFAULT_FY_D;
+    cx_d = DEFAULT_CX_D;
+    cy_d = DEFAULT_CY_D;
+    fx_rgb = DEFAULT_FX_RGB;
+    fy_rgb = DEFAULT_FY_RGB;
+    cx_rgb = DEFAULT_CX_RGB;
+    cy_rgb = DEFAULT_CY_RGB;
 
-    /*ImageOf<PixelRgb> *inYarpImg = pInImg->read(false);
-    ImageOf<PixelFloat> *depth = pInDepth->read(false);
-    if (inYarpImg==NULL) {
-        //printf("No img yet...\n");
-        return;
-    };
-    if (depth==NULL) {
-        //printf("No depth yet...\n");
-        return;
-    };*/
 
-    yarp::sig::ImageOf<yarp::sig::PixelRgb> inYarpImg = kinect->getImageFrame();
-    if (inYarpImg.height()<10) {
-        //printf("No img yet...\n");
-        return;
-    };
-    yarp::sig::ImageOf<yarp::sig::PixelMono16> depth = kinect->getDepthFrame();
-    if (depth.height()<10) {
-        //printf("No depth yet...\n");
-        return;
-    };
+    /* ImageOf<PixelRgb> *inYarpImg = pInImg->read(false);
+     if (inYarpImg==NULL) {
+         //printf("No img yet...\n");
+         return;
+     };
 
-    // {yarp ImageOf Rgb -> openCv Mat Bgr}
-    IplImage *inIplImage = cvCreateImage(cvSize(inYarpImg.width(), inYarpImg.height()),
-                                         IPL_DEPTH_8U, 3 );
-    cvCvtColor((IplImage*)inYarpImg.getIplImage(), inIplImage, CV_RGB2BGR);
-    cv::Mat inCvMat( cv::cvarrToMat(inIplImage) );
+     yarp::sig::ImageOf<yarp::sig::PixelMono16> depth = kinect->getDepthFrame();
+     if (depth.height()<10) {
+         printf("No depth yet...\n");
+         return;
+     };
 
-    // publish the original yarp img if crop selector invoked.
-    if(cropSelector != 0) {
-        //printf("1 x: %d, y: %d, w: %d, h: %d.\n",processor.x,processor.y,processor.w,processor.h);
-        if( (processor.w!=0)&&(processor.h!=0)) {
-            travisCrop(processor.x,processor.y,processor.w,processor.h,inCvMat);
-            yarp::sig::PixelRgb green(0,255,0);
-            yarp::sig::draw::addRectangleOutline(inYarpImg,green,processor.x+processor.w/2.0,processor.y+processor.h/2.0,processor.w/2.0,processor.h/2.0);
-        }
-        outCropSelectorImg->prepare() = inYarpImg;
-        outCropSelectorImg->write();
-    }
+     IplImage *inIplImage = cvCreateImage(cvSize(inYarpImg->width(), inYarpImg->height()),
+                                          IPL_DEPTH_8U, 3 );
 
-    // Because Travis stuff goes with [openCv Mat Bgr] for now
-    //Travis travis;  // ::Travis(quiet=true, overwrite=true);
-    Travis travis(false,true);  // ::Travis(quiet=true, overwrite=true);
-    travis.setCvMat(inCvMat);
-    if(algorithm=="hue") travis.binarize("hue", threshold-5,threshold+5);
-    else if(algorithm=="canny") travis.binarize("canny");
-    else travis.binarize(algorithm.c_str(), threshold);
-    travis.morphOpening( inYarpImg.width() * morphOpening / 100.0 );  // percent
-    travis.morphClosing( inYarpImg.width() * morphClosing / 100.0 );  // percent
-    //travis.morphOpening( morphOpening );
-    //travis.morphClosing( morphClosing );
-    int numBlobs = travis.blobize(maxNumBlobs);
-    if( 0 == numBlobs )
-    {
-        travis.release();
-        return;
-    }
-    std::vector<cv::Point2d> blobsXY;
-    if( ! travis.getBlobsXY(blobsXY) )
-    {
-        travis.release();
-        return;
-    }
-    std::vector<double> blobsAngle,blobsArea,blobsAspectRatio,blobsAxisFirst,blobsAxisSecond;
-    std::vector<double> blobsRectangularity,blobsSolidity;
-    std::vector<double> blobsHue,blobsSat,blobsVal,blobsHueStdDev,blobsSatStdDev,blobsValStdDev;
-    travis.getBlobsArea(blobsArea);
-    travis.getBlobsSolidity(blobsSolidity);
-    travis.getBlobsHSV(blobsHue,blobsSat,blobsVal,blobsHueStdDev,blobsSatStdDev,blobsValStdDev);
-    if( ! travis.getBlobsAngle(0,blobsAngle) )  // method: 0=box, 1=ellipse; note check for return as 1 can break
-    {
-        travis.release();
-        return;
-    }
-    travis.getBlobsAspectRatio(blobsAspectRatio,blobsAxisFirst,blobsAxisSecond);  // must be called after getBlobsAngle!!!!
-    travis.getBlobsRectangularity(blobsRectangularity);  // must be called after getBlobsAngle!!!!
-    cv::Mat outCvMat = travis.getCvMat(outImage,seeBounding);
-    travis.release();
-    // { openCv Mat Bgr -> yarp ImageOf Rgb}
-    IplImage outIplImage = outCvMat;
-    cvCvtColor(&outIplImage,&outIplImage, CV_BGR2RGB);
-    char sequence[] = "RGB";
-    strcpy (outIplImage.channelSeq,sequence);
-    yarp::sig::ImageOf<yarp::sig::PixelRgb> outYarpImg;
-    outYarpImg.wrapIplImage(&outIplImage);
-    yarp::sig::PixelRgb blue(0,0,255);
-    std::vector<double> mmX, mmY, mmZ;
-    if(blobsXY.size() < 1) {
-        fprintf(stderr,"[warning] SegmentorThread run(): blobsXY.size() < 1.\n");
-        //return;
-    }
-    for( int i = 0; i < blobsXY.size(); i++) {
-        yarp::sig::draw::addCircle(outYarpImg,blue,blobsXY[i].x,blobsXY[i].y,3);
-        if (blobsXY[i].x<0) {
-            fprintf(stderr,"[warning] SegmentorThread run(): blobsXY[%d].x < 0.\n",i);
-            //return;
-            blobsXY[i].x = 0;
-        }
-        if (blobsXY[i].y<0) {
-            fprintf(stderr,"[warning] SegmentorThread run(): blobsXY[%d].y < 0.\n",i);
-            //return;
-            blobsXY[i].y = 0;
-        }
-        // double mmZ_tmp = depth->pixel(int(blobsXY[i].x +cx_d-cx_rgb),int(blobsXY[i].y +cy_d-cy_rgb));
-        double mmZ_tmp = depth.pixel(int(blobsXY[i].x),int(blobsXY[i].y));
 
-        if (mmZ_tmp < 0.001) {
-            fprintf(stderr,"[warning] SegmentorThread run(): mmZ_tmp[%d] < 0.001.\n",i);
-            cvReleaseImage( &inIplImage );  // release the memory for the image
-            outCvMat.release();
-            return;
-        }
 
-        double mmX_tmp = 1000.0 * ( (blobsXY[i].x - cx_d) * mmZ_tmp/1000.0 ) / fx_d;
-        double mmY_tmp = 1000.0 * ( (blobsXY[i].y - cy_d) * mmZ_tmp/1000.0 ) / fy_d;
 
-        mmX.push_back( - mmX_tmp );  // Points right thanks to change sign so (x ^ y = z). Expects --noMirror.
-        mmY.push_back( mmY_tmp );    // Points down.
-        mmZ.push_back( mmZ_tmp );    // oints forward.
+     cvCvtColor((IplImage*)inYarpImg->getIplImage(), inIplImage, CV_RGB2BGR);
+     inCvMat = cvarrToMat(inIplImage);
 
-    }
 
-    pOutImg->prepare() = outYarpImg;
-    pOutImg->write();
-    cvReleaseImage( &inIplImage );  // release the memory for the image
-    outCvMat.release();  // cvReleaseImage( &outIplImage );  // release the memory for the image
 
-    if ( ( blobsXY.size() < 1) && ( outFeaturesFormat == 1 ) ) return;
 
-    // Take advantage we have the travis object and get features for text output
-    yarp::os::Bottle output;
-    for (int elem = 0; elem < outFeatures.size() ; elem++) {
-        if ( outFeatures.get(elem).asString() == "mmX" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(mmX[0]);
-            } else {
-                yarp::os::Bottle locXs;
-                for (int i = 0; i < blobsXY.size(); i++)
-                    locXs.addDouble(mmX[i]);
-                output.addList() = locXs;
-            }
-        } else if ( outFeatures.get(elem).asString() == "mmY" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(mmY[0]);
-            } else {
-                yarp::os::Bottle locYs;
-                for (int i = 0; i < blobsXY.size(); i++)
-                    locYs.addDouble(mmY[i]);
-                output.addList() = locYs;
-            }
-        } else if ( outFeatures.get(elem).asString() == "mmZ" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(mmZ[0]);
-            } else {
-                yarp::os::Bottle locZs;
-                for (int i = 0; i < blobsXY.size(); i++)
-                    locZs.addDouble(mmZ[i]);
-                output.addList() = locZs;
-            }
-        } else if ( outFeatures.get(elem).asString() == "pxXpos" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsXY[0].x);
-            } else {
-                yarp::os::Bottle locXs;
-                for (int i = 0; i < blobsXY.size(); i++)
-                    locXs.addDouble(blobsXY[i].x);
-                output.addList() = locXs;
-            }
-        } else if ( outFeatures.get(elem).asString() == "pxYpos" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsXY[0].y);
-            } else {
-                yarp::os::Bottle locYs;
-                for (int i = 0; i < blobsXY.size(); i++)
-                    locYs.addDouble(blobsXY[i].y);
-                output.addList() = locYs;
-            }
-        } else if ( outFeatures.get(elem).asString() == "pxX" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsXY[0].x - cx_d);
-            } else {
-                yarp::os::Bottle locXs;
-                for (int i = 0; i < blobsXY.size(); i++)
-                    locXs.addDouble(blobsXY[i].x - cx_d);
-                output.addList() = locXs;
-            }
-        } else if ( outFeatures.get(elem).asString() == "pxY" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsXY[0].y - cy_d);
-            } else {
-                yarp::os::Bottle locYs;
-                for (int i = 0; i < blobsXY.size(); i++)
-                    locYs.addDouble(blobsXY[i].y - cy_d);
-                output.addList() = locYs;
-            }
-        } else if ( outFeatures.get(elem).asString() == "angle" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsAngle[0]);
-            } else {
-                yarp::os::Bottle angles;
-                for (int i = 0; i < blobsAngle.size(); i++)
-                    angles.addDouble(blobsAngle[i]);
-                output.addList() = angles;
-            }
-        } else if ( outFeatures.get(elem).asString() == "area" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsArea[0]);
-            } else {
-                yarp::os::Bottle areas;
-                for (int i = 0; i < blobsArea.size(); i++)
-                    areas.addDouble(blobsArea[i]);
-                output.addList() = areas;
-            }
-        } else if ( outFeatures.get(elem).asString() == "aspectRatio" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsAspectRatio[0]);
-            } else {
-                yarp::os::Bottle aspectRatios;
-                for (int i = 0; i < blobsAspectRatio.size(); i++)
-                    aspectRatios.addDouble(blobsAspectRatio[i]);
-                output.addList() = aspectRatios;
-            }
-        } else if ( outFeatures.get(elem).asString() == "rectangularity" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsRectangularity[0]);
-            } else {
-                yarp::os::Bottle rectangularities;
-                for (int i = 0; i < blobsRectangularity.size(); i++)
-                    rectangularities.addDouble(blobsRectangularity[i]);
-                output.addList() = rectangularities;
-            }
-        } else if ( outFeatures.get(elem).asString() == "axisFirst" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsAxisFirst[0]);
-            } else {
-                yarp::os::Bottle axisFirsts;
-                for (int i = 0; i < blobsAxisFirst.size(); i++)
-                    axisFirsts.addDouble(blobsAxisFirst[i]);
-                output.addList() = axisFirsts;
-            }
-        } else if ( outFeatures.get(elem).asString() == "axisSecond" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsAxisSecond[0]);
-            } else {
-                yarp::os::Bottle axisSeconds;
-                for (int i = 0; i < blobsAxisSecond.size(); i++)
-                    axisSeconds.addDouble(blobsAxisSecond[i]);
-                output.addList() = axisSeconds;
-            }
-        } else if ( outFeatures.get(elem).asString() == "solidity" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsSolidity[0]);
-            } else {
-                yarp::os::Bottle solidities;
-                for (int i = 0; i < blobsSolidity.size(); i++)
-                    solidities.addDouble(blobsSolidity[i]);
-                output.addList() = solidities;
-            }
-        } else if ( outFeatures.get(elem).asString() == "hue" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsHue[0]);
-            } else {
-                yarp::os::Bottle hues;
-                for (int i = 0; i < blobsHue.size(); i++)
-                    hues.addDouble(blobsHue[i]);
-                output.addList() = hues;
-            }
-        } else if ( outFeatures.get(elem).asString() == "sat" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsSat[0]);
-            } else {
-                yarp::os::Bottle sats;
-                for (int i = 0; i < blobsSat.size(); i++)
-                    sats.addDouble(blobsSat[i]);
-                output.addList() = sats;
-            }
-        } else if ( outFeatures.get(elem).asString() == "val" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsVal[0]);
-            } else {
-                yarp::os::Bottle vals;
-                for (int i = 0; i < blobsVal.size(); i++)
-                    vals.addDouble(blobsVal[i]);
-                output.addList() = vals;
-            }
-        } else if ( outFeatures.get(elem).asString() == "hueStdDev" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsHueStdDev[0]);
-            } else {
-                yarp::os::Bottle hueStdDevs;
-                for (int i = 0; i < blobsHueStdDev.size(); i++)
-                    hueStdDevs.addDouble(blobsHueStdDev[i]);
-                output.addList() = hueStdDevs;
-            }
-        } else if ( outFeatures.get(elem).asString() == "satStdDev" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsSatStdDev[0]);
-            } else {
-                yarp::os::Bottle satStdDevs;
-                for (int i = 0; i < blobsSatStdDev.size(); i++)
-                    satStdDevs.addDouble(blobsSatStdDev[i]);
-                output.addList() = satStdDevs;
-            }
-        } else if ( outFeatures.get(elem).asString() == "valStdDev" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(blobsValStdDev[0]);
-            } else {
-                yarp::os::Bottle valStdDevs;
-                for (int i = 0; i < blobsValStdDev.size(); i++)
-                    valStdDevs.addDouble(blobsValStdDev[i]);
-                output.addList() = valStdDevs;
-            }
-        } else if ( outFeatures.get(elem).asString() == "time" ) {
-            if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                output.addDouble(yarp::os::Time::now());
-            } else {
-                yarp::os::Bottle times;
-                for (int i = 0; i < blobsArea.size(); i++)
-                    times.addDouble(yarp::os::Time::now());
-                output.addList() = times;
-            }
-        } else {
-            fprintf(stderr,"[SegmentorThread] [error] bogus outFeatures: %s\n",
-                    outFeatures.get(elem).asString().c_str());
-            ::exit(0);
-        }
-    }
-    pOutPort->write(output);
+     inCvMat.copyTo(image);
+     original1=Point(image.rows/2,image.cols/2);
+     circle(image, original1, 6, Scalar(231, 37, 18), -1, 8);
+     double mmZ_tmp=depth.pixel(original1.x,original1.y);
 
+     cout<<"x:"<<original1.x<<"y:"<<original1.y<<"z:"<<mmZ_tmp<<endl;
+
+
+     outCvMat=image;
+
+
+     IplImage outIplImage = outCvMat;
+     //cvCvtColor(&outIplImage,&outIplImage, CV_BGR2RGB);     //CV_BGR2RGB
+
+     ImageOf<PixelRgb> outYarpImg;
+     outYarpImg.wrapIplImage(&outIplImage);
+
+     pOutImg->prepare() = outYarpImg;
+     pOutImg->write();
+
+     cvReleaseImage( &inIplImage );  // release the memory for the image
+     outCvMat.release();
+
+
+ */
+
+
+
+ // Main -------------------------------------------------------------------------------------------
+
+
+     //set up a FileStorage object to read camera params from file
+     FileStorage fs;
+     fs.open(filename, FileStorage::READ);
+     // read camera matrix and distortion coefficients from file
+     Mat intrinsics, distortion;
+     fs["Camera_Matrix"] >> intrinsics;
+     fs["Distortion_Coefficients"] >> distortion;
+     // close the input file
+     fs.release();
+
+
+     //set up matrices for storage
+     Mat webcamImage, gray, one;
+     Mat rvec = Mat(Size(3, 1), CV_64F);
+     Mat tvec = Mat(Size(3, 1), CV_64F);
+
+     //setup vectors to hold the chessboard corners in the chessboard coordinate system and in the image
+     vector<Point2d> imagePoints, imageFramePoints, imageOrigin;
+     vector<Point3d> boardPoints, framePoints;
+
+
+     //generate vectors for the points on the chessboard
+     for (int i = 0; i<boardWidth; i++)
+     {
+         for (int j = 0; j<boardHeight; j++)
+         {
+             boardPoints.push_back(Point3d(double(i), double(j), 0.0));
+         }
+     }
+     //generate points in the reference frame
+     framePoints.push_back(Point3d(0.0, 0.0, 0.0));
+     framePoints.push_back(Point3d(5.0, 0.0, 0.0));
+     framePoints.push_back(Point3d(0.0, 5.0, 0.0));
+     framePoints.push_back(Point3d(0.0, 0.0, 5.0));
+
+
+     yarp::sig::ImageOf<yarp::sig::PixelRgb> inYarpImg = kinect->getImageFrame();
+     if (inYarpImg.height()<10) {
+         //printf("No img yet...\n");
+         return;
+     };
+     yarp::sig::ImageOf<yarp::sig::PixelMono16> depth = kinect->getDepthFrame();
+     if (depth.height()<10) {
+         //printf("No depth yet...\n");
+         return;
+     };
+
+     // {yarp ImageOf Rgb -> openCv Mat Bgr}
+     IplImage *inIplImage = cvCreateImage(cvSize(inYarpImg.width(), inYarpImg.height()),
+                                          IPL_DEPTH_8U, 3 );
+     cvCvtColor((IplImage*)inYarpImg.getIplImage(), inIplImage, CV_RGB2BGR);
+     cv::Mat inCvMat( cv::cvarrToMat(inIplImage) );
+
+     yarp::os::Bottle output_angles;
+
+
+     inCvMat.copyTo(webcamImage);
+
+
+         //make a gray copy of the webcam image
+         cvtColor(webcamImage, gray, COLOR_BGR2GRAY);
+
+
+         //detect chessboard corners
+         bool found = findChessboardCorners(gray, cbSize, imagePoints, CALIB_CB_FAST_CHECK);
+
+
+         //find camera orientation if the chessboard corners have been found
+         if (found)
+         {
+
+             //find the camera extrinsic parameters
+             Mat rotMatrix;
+             //find the camera extrinsic parameters
+             solvePnP(Mat(boardPoints), Mat(imagePoints), intrinsics, distortion, rvec, tvec, false);
+
+             Rodrigues(rvec, rotMatrix);
+             Vec3d  eulerAngles;
+             Mat cameraMatrix, rotMatrix1, transVect, rotMatrixX, rotMatrixY, rotMatrixZ;
+             double* _r = rotMatrix.ptr<double>();
+             double projMatrix[12] = { _r[0], _r[1], _r[2], 0,
+                 _r[3], _r[4], _r[5], 0,
+                 _r[6], _r[7], _r[8], 0 };
+
+             decomposeProjectionMatrix(Mat(3, 4, CV_64FC1, projMatrix),
+                 cameraMatrix,
+                 rotMatrix1,
+                 transVect,
+                 rotMatrixX,
+                 rotMatrixY,
+                 rotMatrixZ,
+                 eulerAngles);
+
+             double yaw = eulerAngles[1];
+             double pitch = eulerAngles[0];
+             double roll = eulerAngles[2];
+             //project the reference frame onto the image
+             projectPoints(framePoints, rvec, tvec, intrinsics, distortion, imageFramePoints);
+
+
+             //DRAWING
+             //draw the reference frame on the image
+             circle(webcamImage, imagePoints[0], 4, CV_RGB(255, 0, 0));
+
+             Point one, two, three;
+             one.x = 10; one.y = 10;
+             two.x = 60; two.y = 10;
+             three.x = 10; three.y = 60;
+
+             line(webcamImage, one, two, CV_RGB(255, 0, 0));
+             line(webcamImage, one, three, CV_RGB(0, 255, 0));
+
+
+             line(webcamImage, imageFramePoints[0], imageFramePoints[1], CV_RGB(255, 0, 0), 2);
+             line(webcamImage, imageFramePoints[0], imageFramePoints[2], CV_RGB(0, 255, 0), 2);
+             line(webcamImage, imageFramePoints[0], imageFramePoints[3], CV_RGB(0, 0, 255), 2);
+
+
+
+             std::ostringstream strs;
+             if (pitch<0){
+                 strs << "rot X: " << (pitch+180);
+                 output_angles.addDouble(pitch+180); }
+             else if (pitch>0){
+                 strs << "rot X: " << (pitch - 180);
+                 output_angles.addDouble(pitch-180);}
+             else  {
+                 strs << "rot X: " << pitch;
+                  output_angles.addDouble(pitch);}
+             std::string str = strs.str();
+
+             std::ostringstream strs2;
+             strs2 << "rot Y: " << yaw;
+             output_angles.addDouble(yaw);
+             std::string str2 = strs2.str();
+
+             std::ostringstream strs3;
+             strs3 << "rot Z: " << roll;
+             output_angles.addDouble(roll);
+             std::string str3 = strs3.str();
+
+             /*         } else if ( outFeatures.get(elem).asString() == "mmZ" ) {
+                          if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
+                              output.addDouble(mmZ[0]);
+                          } else {
+                              yarp::os::Bottle locZs;
+                              for (int i = 0; i < blobsXY.size(); i++)
+                                  locZs.addDouble(mmZ[i]);
+                              output.addList() = locZs;
+                          }*/
+
+             putText(webcamImage, str, Point(60, 60), FONT_HERSHEY_COMPLEX, 1, CV_RGB(255, 0, 0), 2, 8, false);
+             putText(webcamImage, str2, Point(60, 90), FONT_HERSHEY_COMPLEX, 1, CV_RGB(0, 255, 0), 2, 8, false);
+             putText(webcamImage, str3, Point(60, 120), FONT_HERSHEY_COMPLEX, 1, CV_RGB(0, 0, 255), 2, 8, false);
+
+             //show the pose estimation data
+      /*      cout << fixed  << "rvec = ["
+                 << rvec.at<double>(0, 0) << ", "
+                 << rvec.at<double>(1, 0) << ", "
+                 << rvec.at<double>(2, 0) << "] \t" << "tvec = ["
+                 << tvec.at<double>(0, 0) << ", "
+                 << tvec.at<double>(1, 0) << ", "
+                 << tvec.at<double>(2, 0) << "]" << endl;
+
+         }*/
+
+         //show the image on screen
+         outCvMat=webcamImage;
+
+
+
+         IplImage outIplImage = outCvMat;
+         //cvCvtColor(&outIplImage,&outIplImage, CV_BGR2RGB);     //CV_BGR2RGB
+
+         yarp::sig::ImageOf<yarp::sig::PixelRgb> outYarpImg;
+
+         outYarpImg.wrapIplImage(&outIplImage);
+
+         pOutImg->prepare() = outYarpImg;
+         pOutImg->write();
+
+         //show the gray image
+         //namedWindow("Gray Image", CV_WINDOW_AUTOSIZE);
+         //imshow("Gray Image", gray);
+
+         cvReleaseImage( &inIplImage );  // release the memory for the image
+
+         if (output_angles.size() > 0)
+             pOutPort->write(output_angles);
+
+         outCvMat.release();
+
+
+     }
+ }
 }
 
-}  // namespace roboticslab
+
+
+
+
+
+

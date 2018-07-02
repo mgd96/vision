@@ -3,6 +3,12 @@
 #ifndef __COLOR_REGION_DETECTION_2D_HPP__
 #define __COLOR_REGION_DETECTION_2D_HPP__
 
+#define DEFAULT_CROP_SELECTOR 0  // 1=true
+#define DEFAULT_KINECT_DEVICE "OpenNI2DeviceServer"
+#define DEFAULT_KINECT_LOCAL "/colorRegionDetection"
+#define DEFAULT_KINECT_REMOTE "/OpenNI2"
+#define DEFAULT_WATCHDOG    2       // [s]
+
 #include "SegmentorThread.hpp"
 
 using namespace yarp::os;
@@ -13,6 +19,10 @@ namespace roboticslab
 
 class ColorRegionDetection2D : public RFModule {
   private:
+
+
+
+
     SegmentorThread segmentorThread;
     //
     BufferedPort<ImageOf<PixelRgb> > inImg;
@@ -24,6 +34,7 @@ class ColorRegionDetection2D : public RFModule {
     bool updateModule();
 
   public:
+
     bool configure(ResourceFinder &rf);
 };
 

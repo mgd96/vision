@@ -9,6 +9,7 @@ namespace roboticslab
 
 bool ColorRegionDetection2D::configure(ResourceFinder &rf) {
 
+
     //printf("--------------------------------------------------------------\n");
     if (rf.check("help")) {
         printf("ColorRegionDetection2D options:\n");
@@ -29,6 +30,8 @@ bool ColorRegionDetection2D::configure(ResourceFinder &rf) {
     outPort.open("/colorRegionDetection2D/features:o");
 
     return true;
+
+
 }
 
 /*****************************************************************/

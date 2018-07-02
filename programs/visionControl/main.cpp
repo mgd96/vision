@@ -26,12 +26,12 @@ int main(int argc, char *argv[])
 
     //-- CONNECT TO FT-SENSORS
     yarp.connect("/state_angles:o","/vision/state:i");
-    if ( NetworkBase::isConnected("/state_angles:o","/vision/state:i") == false ){
+    if ( NetworkBase::isConnected("/colorRegionDetection/visionBalance/state:o","/vision/state:i") == false ){
         cerr << "[error] Couldn't connect to YARP port /vision/state:i." << endl;
     } else cout << "[success] Connected to /vision/state:i." << endl;
     yarp::os::Time::delay(0.5);
     yarp.connect("/jr3/ch0:o","/jr3ch0:i");
-    if ( NetworkBase::isConnected("/jr3/ch0:o","/jr3ch0:i") == false ){
+/*    if ( NetworkBase::isConnected("/jr3/ch0:o","/jr3ch0:i") == false ){
         cerr << "[error] Couldn't connect to YARP port /jr3ch0:i." << endl;
     } else cout << "[success] Connected to /jr3ch0:i." << endl;
     yarp::os::Time::delay(0.5);
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     if ( NetworkBase::isConnected("/jr3/ch1:o","/jr3ch1:i") == false ){
         cerr << "[error] Couldn't connect to YARP port /jr3ch1:i." << endl;
     } else cout << "[success] Connected to /jr3ch1:i." << endl;
-    yarp::os::Time::delay(0.5);
+    yarp::os::Time::delay(0.5);*/
     yarp.connect("/inertial", "/inertial:i");
     if ( NetworkBase::isConnected("/inertial", "/inertial:i") == false ){
         cerr << "[error] Couldn't connect to YARP port /inertial:i." << endl;

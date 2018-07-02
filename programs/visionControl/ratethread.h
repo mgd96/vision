@@ -95,9 +95,9 @@ public:
         Bottle camera;
 
 
-        portft0.read(ch0); // lectura del sensor JR3 ch0
+  /*      portft0.read(ch0); // lectura del sensor JR3 ch0
         portft1.read(ch1); // lectura del sensor JR3 ch1
-        portImu.read(imu); // lectura del sensor IMU
+ */       portImu.read(imu); // lectura del sensor IMU
         portCamera.read(camera); // lectura del sensor Camera
 
         //--- CAMERA-Sensor

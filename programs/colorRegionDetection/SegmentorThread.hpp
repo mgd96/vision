@@ -166,7 +166,7 @@ private:
     double angle_2;
     Size cbSize = Size(boardHeight, boardWidth);
 
-    string filename = "//home//teo//Descargas//calib//DataCam.yml";
+    string filename = "//home//teo//Descargas//teo_params_gd.yml";
     bool doneYet = false;
 
     //default image size

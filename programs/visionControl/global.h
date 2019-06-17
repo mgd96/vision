@@ -35,7 +35,7 @@ using namespace yarp::dev;
 #define Zcom 0.683 //Distance to COM in Z axis [cm] - Zcom 103.6602 JUANLO
 
 //PID parameters
-#define dt 0.05 //Loop interval time [s]
+#define dt 0.1 //Loop interval time [s]
 #define max 10 //Maximum output value
 #define min -10 //Minimum output value
 //Ankle parameters

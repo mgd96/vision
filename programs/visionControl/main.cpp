@@ -25,13 +25,13 @@ int main(int argc, char *argv[])
     yarp::os::Time::delay(0.5);
 
     //-- CONNECT TO FT-SENSORS
-    yarp.connect("/state_angles:o","/vision/state:i");
+    yarp.connect("/colorRegionDetection/visionBalance/state:o","/vision/state:i");
     if ( NetworkBase::isConnected("/colorRegionDetection/visionBalance/state:o","/vision/state:i") == false ){
         cerr << "[error] Couldn't connect to YARP port /vision/state:i." << endl;
     } else cout << "[success] Connected to /vision/state:i." << endl;
     yarp::os::Time::delay(0.5);
-    yarp.connect("/jr3/ch0:o","/jr3ch0:i");
-/*    if ( NetworkBase::isConnected("/jr3/ch0:o","/jr3ch0:i") == false ){
+/*    yarp.connect("/jr3/ch0:o","/jr3ch0:i");
+    if ( NetworkBase::isConnected("/jr3/ch0:o","/jr3ch0:i") == false ){
         cerr << "[error] Couldn't connect to YARP port /jr3ch0:i." << endl;
     } else cout << "[success] Connected to /jr3ch0:i." << endl;
     yarp::os::Time::delay(0.5);
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
         return false;
     } else printf("[success] Acquired rightLegIPositionControl2 interface\n");
 
-/*    // ------ TRUNK CONF -------
+    // ------ TRUNK CONF -------
     yarp::os::Property trunkOptions;
     trunkOptions.put("device","remote_controlboard");
     trunkOptions.put("remote","/teo/trunk");
@@ -109,8 +109,9 @@ int main(int argc, char *argv[])
     if (!trunkDevice.view(trunkIPositionControl2) ) { // connecting our device with "Position control 2" interface (configuring our device: speed, acceleration... and sending joint positions)
         printf("[warning] Problems acquiring trunkIPositionControl2 interface\n");
         return false;
-    } else printf("[success] Acquired trunkIPositionControl2 interface\n");*/
+    } else printf("[success] Acquired trunkIPositionControl2 interface\n");
 
+    printf("[warning] me he quedado aqui\n");
 
             //-- SET CONTROL MODE
     int leftLegAxes;
@@ -129,13 +130,13 @@ int main(int argc, char *argv[])
         return false;
     } else printf("[success] Activated rightLegControlModes interface\n");
 
-/*    int trunkAxes;
+    int trunkAxes;
     trunkIPositionControl2->getAxes(&trunkAxes);
     std::vector<int> trunkControlModes(trunkAxes,VOCAB_CM_POSITION);
     if(! trunkIControlMode2->setControlModes(trunkControlModes.data())){
         printf("[warning] Problems setting position control mode of: trunk\n");
         return false;
-    } else printf("[success] Activated trunkControlModes interface\n");*/
+    } else printf("[success] Activated trunkControlModes interface\n");
 
     yarp::os::Time::delay(1);
 

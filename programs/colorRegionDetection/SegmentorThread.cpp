@@ -127,6 +127,7 @@ void SegmentorThread::init(yarp::os::ResourceFinder &rf) {
 
 /************************************************************************/
 void SegmentorThread::run() {
+
     fx_d = DEFAULT_FX_D;
     fy_d = DEFAULT_FY_D;
     cx_d = DEFAULT_CX_D;
@@ -136,259 +137,77 @@ void SegmentorThread::run() {
     cx_rgb = DEFAULT_CX_RGB;
     cy_rgb = DEFAULT_CY_RGB;
 
+    // initialize the device
+    fovis_example::DataCapture* cap = new fovis_example::DataCapture();
+    if(!cap->initialize()) {
+      fprintf(stderr, "Unable to initialize Kinect sensor\n");
 
-    /* ImageOf<PixelRgb> *inYarpImg = pInImg->read(false);
-     if (inYarpImg==NULL) {
-         //printf("No img yet...\n");
-         return;
-     };
+    }
+    if(!cap->startDataCapture()) {
+      fprintf(stderr, "Unable to start data capture\n");
 
-     yarp::sig::ImageOf<yarp::sig::PixelMono16> depth = kinect->getDepthFrame();
-     if (depth.height()<10) {
-         printf("No depth yet...\n");
-         return;
-     };
+    }
 
-     IplImage *inIplImage = cvCreateImage(cvSize(inYarpImg->width(), inYarpImg->height()),
-                                          IPL_DEPTH_8U, 3 );
+    // get the RGB camera parameters of our device
+    fovis::Rectification rect(cap->getRgbParameters());
 
+    fovis::VisualOdometryOptions options =
+        fovis::VisualOdometry::getDefaultOptions();
+    // If we wanted to play around with the different VO parameters, we could set
+    // them here in the "options" variable.
 
+    // setup the visual odometry
+    fovis::VisualOdometry* odom = new fovis::VisualOdometry(&rect, options);
 
+    // exit cleanly on CTL-C
+    struct sigaction new_action;
 
-     cvCvtColor((IplImage*)inYarpImg->getIplImage(), inIplImage, CV_RGB2BGR);
-     inCvMat = cvarrToMat(inIplImage);
+    //new_action.sa_sigaction = sig_action;
 
+    sigemptyset(&new_action.sa_mask);
+    new_action.sa_flags = 0;
+    sigaction(SIGINT, &new_action, NULL);
+    sigaction(SIGTERM, &new_action, NULL);
+    sigaction(SIGHUP, &new_action, NULL);
 
+    while(!shutdown_flag) {
+      if(!cap->captureOne()) {
+        fprintf(stderr, "Capture failed\n");
+        break;
+      }
+      yarp::os::Bottle output_angles;
 
+      odom->processFrame(cap->getGrayImage(), cap->getDepthImage());
 
-     inCvMat.copyTo(image);
-     original1=Point(image.rows/2,image.cols/2);
-     circle(image, original1, 6, Scalar(231, 37, 18), -1, 8);
-     double mmZ_tmp=depth.pixel(original1.x,original1.y);
+      // get the integrated pose estimate.
+      Eigen::Isometry3d cam_to_local = odom->getPose();
 
-     cout<<"x:"<<original1.x<<"y:"<<original1.y<<"z:"<<mmZ_tmp<<endl;
+      // get the motion estimate for this frame to the previous frame.
+      Eigen::Isometry3d motion_estimate = odom->getMotionEstimate();
 
+      // display the motion estimate.  These values are all given in the RGB
+      // camera frame, where +Z is forward, +X points right, +Y points down, and
+      // the origin is located at the focal point of the RGB camera.
 
-     outCvMat=image;
+      std::cout << isometryToString(cam_to_local,output_angles) << "\n";
 
+      /*if (output_angles.size() > 0)
+          pOutPort->write(output_angles);*/
 
-     IplImage outIplImage = outCvMat;
-     //cvCvtColor(&outIplImage,&outIplImage, CV_BGR2RGB);     //CV_BGR2RGB
 
-     ImageOf<PixelRgb> outYarpImg;
-     outYarpImg.wrapIplImage(&outIplImage);
+    }
 
-     pOutImg->prepare() = outYarpImg;
-     pOutImg->write();
+    printf("Shutting down\n");
+    cap->stopDataCapture();
+    delete odom;
+    delete cap;
 
-     cvReleaseImage( &inIplImage );  // release the memory for the image
-     outCvMat.release();
 
 
- */
 
 
-
- // Main -------------------------------------------------------------------------------------------
-
-
-     //set up a FileStorage object to read camera params from file
-     FileStorage fs;
-     fs.open(filename, FileStorage::READ);
-     // read camera matrix and distortion coefficients from file
-     Mat intrinsics, distortion;
-     fs["Camera_Matrix"] >> intrinsics;
-     fs["Distortion_Coefficients"] >> distortion;
-     // close the input file
-     fs.release();
-
-
-     //set up matrices for storage
-     Mat webcamImage, gray, one;
-     Mat rvec = Mat(Size(3, 1), CV_64F);
-     Mat tvec = Mat(Size(3, 1), CV_64F);
-
-     //setup vectors to hold the chessboard corners in the chessboard coordinate system and in the image
-     vector<Point2d> imagePoints, imageFramePoints, imageOrigin;
-     vector<Point3d> boardPoints, framePoints;
-
-
-     //generate vectors for the points on the chessboard
-     for (int i = 0; i<boardWidth; i++)
-     {
-         for (int j = 0; j<boardHeight; j++)
-         {
-             boardPoints.push_back(Point3d(double(i), double(j), 0.0));
-         }
-     }
-     //generate points in the reference frame
-     framePoints.push_back(Point3d(0.0, 0.0, 0.0));
-     framePoints.push_back(Point3d(5.0, 0.0, 0.0));
-     framePoints.push_back(Point3d(0.0, 5.0, 0.0));
-     framePoints.push_back(Point3d(0.0, 0.0, 5.0));
-
-
-     yarp::sig::ImageOf<yarp::sig::PixelRgb> inYarpImg = kinect->getImageFrame();
-     if (inYarpImg.height()<10) {
-         //printf("No img yet...\n");
-         return;
-     };
-     yarp::sig::ImageOf<yarp::sig::PixelMono16> depth = kinect->getDepthFrame();
-     if (depth.height()<10) {
-         //printf("No depth yet...\n");
-         return;
-     };
-
-     // {yarp ImageOf Rgb -> openCv Mat Bgr}
-     IplImage *inIplImage = cvCreateImage(cvSize(inYarpImg.width(), inYarpImg.height()),
-                                          IPL_DEPTH_8U, 3 );
-     cvCvtColor((IplImage*)inYarpImg.getIplImage(), inIplImage, CV_RGB2BGR);
-     cv::Mat inCvMat( cv::cvarrToMat(inIplImage) );
-
-     yarp::os::Bottle output_angles;
-
-
-     inCvMat.copyTo(webcamImage);
-
-
-         //make a gray copy of the webcam image
-         cvtColor(webcamImage, gray, COLOR_BGR2GRAY);
-
-
-         //detect chessboard corners
-         bool found = findChessboardCorners(gray, cbSize, imagePoints, CALIB_CB_FAST_CHECK);
-
-
-         //find camera orientation if the chessboard corners have been found
-         if (found)
-         {
-
-             //find the camera extrinsic parameters
-             Mat rotMatrix;
-             //find the camera extrinsic parameters
-             solvePnP(Mat(boardPoints), Mat(imagePoints), intrinsics, distortion, rvec, tvec, false);
-
-             Rodrigues(rvec, rotMatrix);
-             Vec3d  eulerAngles;
-             Mat cameraMatrix, rotMatrix1, transVect, rotMatrixX, rotMatrixY, rotMatrixZ;
-             double* _r = rotMatrix.ptr<double>();
-             double projMatrix[12] = { _r[0], _r[1], _r[2], 0,
-                 _r[3], _r[4], _r[5], 0,
-                 _r[6], _r[7], _r[8], 0 };
-
-             decomposeProjectionMatrix(Mat(3, 4, CV_64FC1, projMatrix),
-                 cameraMatrix,
-                 rotMatrix1,
-                 transVect,
-                 rotMatrixX,
-                 rotMatrixY,
-                 rotMatrixZ,
-                 eulerAngles);
-
-             double yaw = eulerAngles[1];
-             double pitch = eulerAngles[0];
-             double roll = eulerAngles[2];
-             //project the reference frame onto the image
-             projectPoints(framePoints, rvec, tvec, intrinsics, distortion, imageFramePoints);
-
-
-             //DRAWING
-             //draw the reference frame on the image
-             circle(webcamImage, imagePoints[0], 4, CV_RGB(255, 0, 0));
-
-             Point one, two, three;
-             one.x = 10; one.y = 10;
-             two.x = 60; two.y = 10;
-             three.x = 10; three.y = 60;
-
-             line(webcamImage, one, two, CV_RGB(255, 0, 0));
-             line(webcamImage, one, three, CV_RGB(0, 255, 0));
-
-
-             line(webcamImage, imageFramePoints[0], imageFramePoints[1], CV_RGB(255, 0, 0), 2);
-             line(webcamImage, imageFramePoints[0], imageFramePoints[2], CV_RGB(0, 255, 0), 2);
-             line(webcamImage, imageFramePoints[0], imageFramePoints[3], CV_RGB(0, 0, 255), 2);
-
-
-
-             std::ostringstream strs;
-             if (pitch<0){
-                 strs << "rot X: " << (pitch+180);
-                 output_angles.addDouble(pitch+180); }
-             else if (pitch>0){
-                 strs << "rot X: " << (pitch - 180);
-                 output_angles.addDouble(pitch-180);}
-             else  {
-                 strs << "rot X: " << pitch;
-                  output_angles.addDouble(pitch);}
-             std::string str = strs.str();
-
-             std::ostringstream strs2;
-             strs2 << "rot Y: " << yaw;
-             output_angles.addDouble(yaw);
-             std::string str2 = strs2.str();
-
-             std::ostringstream strs3;
-             strs3 << "rot Z: " << roll;
-             output_angles.addDouble(roll);
-             std::string str3 = strs3.str();
-
-             /*         } else if ( outFeatures.get(elem).asString() == "mmZ" ) {
-                          if ( outFeaturesFormat == 1 ) {  // 0: Bottled, 1: Minimal
-                              output.addDouble(mmZ[0]);
-                          } else {
-                              yarp::os::Bottle locZs;
-                              for (int i = 0; i < blobsXY.size(); i++)
-                                  locZs.addDouble(mmZ[i]);
-                              output.addList() = locZs;
-                          }*/
-
-             putText(webcamImage, str, Point(60, 60), FONT_HERSHEY_COMPLEX, 1, CV_RGB(255, 0, 0), 2, 8, false);
-             putText(webcamImage, str2, Point(60, 90), FONT_HERSHEY_COMPLEX, 1, CV_RGB(0, 255, 0), 2, 8, false);
-             putText(webcamImage, str3, Point(60, 120), FONT_HERSHEY_COMPLEX, 1, CV_RGB(0, 0, 255), 2, 8, false);
-
-             //show the pose estimation data
-      /*      cout << fixed  << "rvec = ["
-                 << rvec.at<double>(0, 0) << ", "
-                 << rvec.at<double>(1, 0) << ", "
-                 << rvec.at<double>(2, 0) << "] \t" << "tvec = ["
-                 << tvec.at<double>(0, 0) << ", "
-                 << tvec.at<double>(1, 0) << ", "
-                 << tvec.at<double>(2, 0) << "]" << endl;
-
-         }*/
-
-         //show the image on screen
-         outCvMat=webcamImage;
-
-
-
-         IplImage outIplImage = outCvMat;
-         //cvCvtColor(&outIplImage,&outIplImage, CV_BGR2RGB);     //CV_BGR2RGB
-
-         yarp::sig::ImageOf<yarp::sig::PixelRgb> outYarpImg;
-
-         outYarpImg.wrapIplImage(&outIplImage);
-
-         pOutImg->prepare() = outYarpImg;
-         pOutImg->write();
-
-         //show the gray image
-         //namedWindow("Gray Image", CV_WINDOW_AUTOSIZE);
-         //imshow("Gray Image", gray);
-
-         cvReleaseImage( &inIplImage );  // release the memory for the image
-
-         if (output_angles.size() > 0)
-             pOutPort->write(output_angles);
-
-         outCvMat.release();
-
-
-     }
  }
 }
-
 
 
 

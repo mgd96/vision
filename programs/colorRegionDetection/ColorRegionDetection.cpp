@@ -9,7 +9,7 @@ namespace roboticslab
 bool ColorRegionDetection::configure(yarp::os::ResourceFinder &rf) {
 
     cropSelector = DEFAULT_CROP_SELECTOR;
-    yarp::os::ConstString strKinectDevice = DEFAULT_KINECT_DEVICE;
+   // yarp::os::ConstString strKinectDevice = DEFAULT_KINECT_DEVICE;
     yarp::os::ConstString strKinectLocal = DEFAULT_KINECT_LOCAL;
     yarp::os::ConstString strKinectRemote = DEFAULT_KINECT_REMOTE;
     watchdog = DEFAULT_WATCHDOG;  // double
@@ -19,7 +19,7 @@ bool ColorRegionDetection::configure(yarp::os::ResourceFinder &rf) {
         printf("ColorRegionDetection options:\n");
         printf("\t--help (this help)\t--from [file.ini]\t--context [path]\n");
         printf("\t--cropSelector (default: \"%d\")\n",cropSelector);
-        printf("\t--kinectDevice (device we create, default: \"%s\")\n",strKinectDevice.c_str());
+       // printf("\t--kinectDevice (device we create, default: \"%s\")\n",strKinectDevice.c_str());
         printf("\t--kinectLocal (if accesing remote, local port name, default: \"%s\")\n",strKinectLocal.c_str());
         printf("\t--kinectRemote (if accesing remote, remote port name, default: \"%s\")\n",strKinectRemote.c_str());
         printf("\t--watchdog ([s] default: \"%f\")\n",watchdog);
@@ -27,30 +27,32 @@ bool ColorRegionDetection::configure(yarp::os::ResourceFinder &rf) {
     }
     if(rf.check("cropSelector")) cropSelector = rf.find("cropSelector").asInt();
     printf("ColorRegionDetection using cropSelector: %d.\n",cropSelector);
-    if(rf.check("kinectDevice")) strKinectDevice = rf.find("kinectDevice").asString();
+   // if(rf.check("kinectDevice")) strKinectDevice = rf.find("kinectDevice").asString();
     if(rf.check("kinectLocal")) strKinectLocal = rf.find("kinectLocal").asString();
     if(rf.check("kinectRemote")) strKinectRemote = rf.find("kinectRemote").asString();
     if(rf.check("watchdog")) watchdog = rf.find("watchdog").asDouble();
-    printf("ColorRegionDetection using kinectDevice: %s, kinectLocal: %s, kinectRemote: %s.\n",
-        strKinectDevice.c_str(), strKinectLocal.c_str(), strKinectRemote.c_str());
+    //printf("ColorRegionDetection using kinectDevice: %s, kinectLocal: %s, kinectRemote: %s.\n",
+     //   strKinectDevice.c_str(), strKinectLocal.c_str(), strKinectRemote.c_str());
+    //printf("ColorRegionDetection  kinectLocal: %s.\n",
+      //     strKinectLocal.c_str());
     printf("ColorRegionDetection using watchdog: %f.\n",watchdog);
 
     if (!rf.check("help")) {
         yarp::os::Property options;
         options.fromString( rf.toString() );  //-- Should get noMirror, noRGBMirror, noDepthMirror, video modes...
-        options.put("device",strKinectDevice);  //-- Important to override in case there is a "device" in the future
-        options.put("localName",strKinectLocal);  //
-        options.put("remoteName",strKinectRemote);  //
-        //if(rf.check("noMirror")) options.put("noMirror",1);  //-- Replaced by options.fromString( rf.toString() );
-        while(!dd.open(options)) {
-            printf("Waiting for kinectDevice \"%s\"...\n",strKinectDevice.c_str());
-            yarp::os::Time::delay(1);
-        }
-        printf("[ColorRegionDetection] success: kinectDevice available.\n");
-        if (! dd.view(kinect) ) fprintf(stderr,"[ColorRegionDetection] warning: kinectDevice bad view.\n");
-        else printf("[ColorRegionDetection] success: kinectDevice ok view.\n");
+       // options.put("device",strKinectDevice);  //-- Important to override in case there is a "device" in the future
+       options.put("localName",strKinectLocal);  //
+       options.put("remoteName",strKinectRemote);  //
+        if(rf.check("noMirror")) options.put("noMirror",1);  //-- Replaced by options.fromString( rf.toString() );
+      //  while(!dd.open(options)) {
+           // printf("Waiting for kinectDevice \"%s\"...\n",strKinectDevice.c_str());
+         //   yarp::os::Time::delay(1);
+       // }
+       //printf("[ColorRegionDetection] success: kinectDevice available.\n");
+       // if (! dd.view(kinect) ) fprintf(stderr,"[ColorRegionDetection] warning: kinectDevice bad view.\n");
+       // else printf("[ColorRegionDetection] success: kinectDevice ok view.\n");
 
-        segmentorThread.setIKinectDeviceDriver(kinect);
+       //segmentorThread.setIKinectDeviceDriver(kinect);
         segmentorThread.setOutImg(&outImg);
         segmentorThread.setOutPort(&outPort);
 
@@ -61,17 +63,21 @@ bool ColorRegionDetection::configure(yarp::os::ResourceFinder &rf) {
         }
     }
 
-    segmentorThread.init(rf);
 
     //-----------------OPEN LOCAL PORTS------------//
-    outImg.open(strKinectLocal + "/visionBalance/img:o");
-    outPort.open(strKinectLocal + "/visionBalance/state:o");
-    if(cropSelector != 0) {
-        outCropSelectorImg.open(strKinectLocal + "/cropSelector/img:o");
-        inCropSelectorPort.open(strKinectLocal + "/cropSelector/state:i");
+    //outImg.open(strKinectLocal + "/visionBalance/img:o");
+    //outPort.open(strKinectLocal + "/visionBalance/state:o");
+   // if(cropSelector != 0) {
+      //  outCropSelectorImg.open(strKinectLocal + "/cropSelector/img:o");
+      //  inCropSelectorPort.open(strKinectLocal + "/cropSelector/state:i");
 
-    }
+    //}
+
+    segmentorThread.init(rf);
+
+
     return true;
+
 }
 
 /*****************************************************************/
@@ -82,7 +88,8 @@ double ColorRegionDetection::getPeriod() {
 /************************************************************************/
 
 bool ColorRegionDetection::updateModule() {
-    printf("ColorRegionDetection alive...\n");
+        printf("ColorRegionDetection alive...\n");
+
     return true;
 }
 
@@ -97,7 +104,7 @@ bool ColorRegionDetection::interruptModule() {
         outCropSelectorImg.interrupt();
         inCropSelectorPort.interrupt();
     }
-    dd.close();
+    //dd.close();
     outImg.close();
     outPort.close();
     if(cropSelector != 0) {

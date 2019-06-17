@@ -10,9 +10,18 @@
 #include <yarp/os/RateThread.h>
 
 
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+
+#include <string>
+
+#include <fovis/fovis.hpp>
+
+#include "data_capture.hpp"
+
 //includes
 #include <stdio.h>
-#include <string>
 
 #include<iostream>
 #include "opencv2/video/tracking.hpp"
@@ -32,11 +41,13 @@ using namespace cv;
 #include <yarp/sig/all.h>
 
 #include <cv.h>
-//#include <highgui.h> // to show windows
+#include <highgui.h> // to show windows
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
+
 
 #include "TravisLib.hpp"
 
@@ -78,6 +89,10 @@ using namespace cv;
 #define DEFAULT_CX_RGB        319.5  //
 
 #define DEFAULT_CY_RGB        239.5  //
+
+
+#define dbg(...) fprintf(stderr, __VA_ARGS__)
+
 
 
 
@@ -155,6 +170,7 @@ private:
 
 
     //global
+    int option=0;
     int boardHeight = 6;
     int boardWidth = 9;
     int times = 0;
@@ -166,7 +182,8 @@ private:
     double angle_2;
     Size cbSize = Size(boardHeight, boardWidth);
 
-    string filename = "//home//teo//Descargas//teo_params_gd.yml";
+    string filename = "//home//teo//repos_miguel//teo_params_gd.yml";
+
     bool doneYet = false;
 
     //default image size
@@ -188,9 +205,54 @@ private:
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* outCropSelectorImg;
     yarp::os::Port* inCropSelectorPort;
     DataProcessor processor;
-
+     void sig_action(int signal, siginfo_t *s, void *user)
+    {
+      shutdown_flag = 1;
+    }
 public:
     SegmentorThread() : RateThread(DEFAULT_RATE_MS) {}
+    //
+    sig_atomic_t shutdown_flag = 0;
+
+
+    char*
+    isometryToString(const Eigen::Isometry3d& m, yarp::os::Bottle &output_angles)
+    {
+
+      char *result = (char *) malloc(sizeof(char) * 3);
+
+      memset(result, 0, sizeof(result));
+      Eigen::Vector3d xyz = m.translation();
+      Eigen::Vector3d rpy = m.rotation().eulerAngles(0, 1, 2);
+       snprintf(result, 79, "%6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f");
+
+      double angx=(rpy(0) * 180/M_PI);
+      double angy=(rpy(1) * 180/M_PI);
+      double angz=(rpy(2) * 180/M_PI);
+
+      if (angx>100)  angx=angx-180;
+      if (angy>100)  angy=angy-180;
+      if (angz>100)  angz=angz-180;
+
+      if (angx<-100)  angx=angx+180;
+      if (angy<-100)  angy=angy+180;
+      if (angz<-100)  angz=angz+180;
+
+      result[0]=angx;
+      result[1]=angy;
+      result[2]=angz;
+
+      output_angles.addDouble(angx);
+      output_angles.addDouble(angy);
+      output_angles.addDouble(angz);
+
+
+      cout<<"ang x= "<<angx<<" ang y= "<<angz<<" ang z= "<<angy<<endl;
+
+      return result;
+    }
+
+
 
     void setIKinectDeviceDriver(yarp::dev::IOpenNI2DeviceDriver * _kinect);
     void setOutImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > * _pOutImg);

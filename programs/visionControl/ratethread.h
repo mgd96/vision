@@ -45,29 +45,98 @@ public:
     MyRateThread() : RateThread(dt*1000.0) {    //Conversion to [ms]
 
         n = 1;
-        ang_ref = 0.0;
+        r = 1;
+        m = 0;
+        p = 0;
+
+        rightLegIPositionControl2->positionMove(4, 0); // position in degrees
+        leftLegIPositionControl2->positionMove(4, 0);
 
     }
 
     void run()
     {
 
-        // Test escalon con rampa // generacion del ANG_ref para test CAM sensor
-            if (n <= 300){ang_ref = 0.0;}
-            else if (n >= 300 && n <= 330){ang_ref = (5/30)*n - 50;} // variar desde 1 a 10 grados
-            else {ang_ref = ang_ref;}
+  /*      // prueba a 30 grados
+
+            if(n!=0){
+                 cout<<n<<endl;
+
+                if (n<170) ang_ref=30;
+                if (n>=170) ang_ref=0;
+                ControlJoints();
+
+                readSensors(2); // lectura de la CAM e IMU
+                if (angImu_z>100) angImu_z=angImu_z-360;
+                if(n==1) {
+
+                    offXcam =  angCam_x;
+                    offYcam =  angCam_y;
+                    offZcam =  angCam_z;
+
+                    offXimu = angImu_x;
+                    offYimu = angImu_y;
+                    offZimu = angImu_z;
+
+                    }
+
+                angImu_x = angImu_x - offXimu;
+                angImu_y = angImu_y - offYimu;
+                angImu_z = angImu_z - offZimu;
+
+                angCam_x = angCam_x - offXcam;
+                angCam_y = angCam_y - offYcam;
+                angCam_z = angCam_z - offZcam;
+                // Calculo y generacion de la actuacion en funcion del ANG_ref
+                printData();
+            }
+*/
+//prueba escalon
+
+           if (n < 70){ang_ref = 0.0;}
+            if(n>=70 && n<=100){
+                //ang_ref = -((5/30)*n-50);
+                /*ang_ref = 1*n;
+                ang_ref = ang_ref/7;
+                ang_ref = ang_ref-10;*/
+                if((n==70)&&(m==0))  ang_ref=0;             
+                else if (ang_ref <= 3) ang_ref=ang_ref+0.01;
+                else if (ang_ref > 3) ang_ref=ang_ref-0.01;
+
+            }
+            // variar desde 1 a 10 grados
+            //else if(300>=n<=330){ang_ref = -5;} // variar desde 1 a 10 grados
+            //if (n > 100){ang_ref = ang_ref;}
 
             getInitialTime();
-            
-            readSensors(); // lectura de la CAM e IMU
-            
-            ControlJoints(); // Calculo y generacion de la actuacion en funcion del ANG_ref
+            if (n>10 && n<=70){
+                offsetIMU();
+            }
 
-            printData();
-            cout << endl << "Press ENTER to exit..." << endl;
+
+
+            if (n>=70 && n<=100){
+                readSensors(2); // lectura de la CAM e IMU
+                ControlJoints(); // Calculo y generacion de la actuacion en funcion del ANG_ref
+                printData();
+            }
+
+            if (n>110){
+
+                    n=69;
+                    m = m + 1;
+            }
+
+
+
+
+
+
+            cout << endl << "Press ENTER to exit 2..." << endl;
             cout << "*******************************" << endl << endl;
             saveInFileCsv();
             n++;
+            r++;
             cout << n << endl << endl;
             getCurrentTime();
 
@@ -87,20 +156,67 @@ public:
         act_loop = Time::now() - init_loop;
     }
 
-    void readSensors(){
+    void offsetIMU()    {
+
+        if (n>=10 && n<=65){
+        readSensors(1); // lectura de la IMU
+        offXimu += + angImu_x;
+        offYimu += + angImu_y;
+        offZimu += + angImu_z;
+        cout<<offXimu<<endl;}
+
+       /* if (n>50 && n<=65){
+        readSensors(2); // lectura de la CAM e IMU
+            offXimu += + angImu_x;
+            fofYimu += + angImu_y;
+            offZimu += + angImu_z;
+            }*/
+
+
+        if(n==69){
+
+            readSensors(2);
+
+            offXcam =  angCam_x;
+            offYcam =  angCam_y;
+            offZcam =  angCam_z;
+
+            offXimu = offXimu/55;
+            offYimu = offYimu/55;
+            offZimu = offZimu/55;
+
+        }
+
+
+
+
+    }
+
+    void readSensors(int n){
+
 
         Bottle ch0;
         Bottle ch1;
         Bottle imu;
         Bottle camera;
-
-
+        if (n==1){
+             portImu.read(imu);
+            angImu_x = imu.get(0).asDouble(); // Angulo en X [deg]
+            angImu_y = imu.get(1).asDouble(); // Angulo en Y [deg]
+            angImu_z = imu.get(2).asDouble(); // Angulo en Z [deg]
+            cout<<"uno"<<endl;
+        }
+        if(n==2){
+            //cout<<"dos"<<endl;
   /*      portft0.read(ch0); // lectura del sensor JR3 ch0
         portft1.read(ch1); // lectura del sensor JR3 ch1
  */       portImu.read(imu); // lectura del sensor IMU
+        cout<<"llego cerca"<<endl;
+
         portCamera.read(camera); // lectura del sensor Camera
 
-        //--- CAMERA-Sensor
+
+
         angCam_x = camera.get(0).asDouble();
         angCam_y = camera.get(1).asDouble();
         angCam_z = camera.get(2).asDouble();
@@ -158,20 +274,38 @@ public:
          ddx_robot = ddx;
          ddy_robot = -ddy;
          ddz_robot = ddz;*/
-
+}
     }
 
     void ControlJoints(){
 
-            //-- ANKLE STRATEGY
-    rightLegIPositionControl2->positionMove(4, ang_ref); // position in degrees
-    leftLegIPositionControl2->positionMove(4, ang_ref);
+        angImu_x = angImu_x - offXimu;
+        angImu_y = angImu_y - offYimu;
+        angImu_z = angImu_z - offZimu;
+        if (angImu_z<-100) angImu_z=angImu_z+360;
+        if (angImu_z>100) angImu_z=angImu_z-360;
 
+        angCam_x = angCam_x - offXcam;
+        angCam_y = angCam_y - offYcam;
+        angCam_z = angCam_z - offZcam;
+        //cout<<offZcam<<endl;
+        //ang_ref2 = ang_ref + m;
+
+            //-- ANKLE STRATEGY
+        rightLegIPositionControl2->positionMove(4, -ang_ref); // position in degrees
+        leftLegIPositionControl2->positionMove(4, -ang_ref);
+
+            //-- TRUNK STRATEGY
+        //trunkIPositionControl2->positionMove(0, -ang_ref); // position in degrees
+
+        trunkIPositionControl2->setRefSpeed(4,1); // velocidad
 }
 
     void printData()
     {
-
+ /*       cout << endl << "La interacion n es (actualizado):" << n <<endl;
+        cout << endl << "La interacion m es:" << m <<endl;
+        cout << endl << "La interacion p es:" << p <<endl;*/
         cout << endl << "El angulo ref es: " << ang_ref << endl;
 
         cout << endl << "El angulo imu X es: " << angImu_x << endl;
@@ -198,22 +332,24 @@ public:
         fprintf(fp,",%.10f", angCam_x);
         fprintf(fp,",%.10f", angCam_y);
         fprintf(fp,",%.10f", angCam_z);
-        fprintf(fp,",%i", n);
+        fprintf(fp,",%i", r);
 
     }
 
 private:
-    int m, n;
-    double _num; // Variable para jugar con las iteraciones (500 iteraciones -> 15 segundos)
+    int m, n, p, r;
+    double _num; // Variable para jugar con larefs iteraciones (500 iteraciones -> 15 segundos)
     float e; // distance [m] between ground and sensor center
 
     LIPM2d _eval_Ctrl;
 
     //-- CAMERA variables
     double angCam_x,angCam_y,angCam_z;
+    double offXcam, offYcam, offZcam; // eliminar el Offset de la CAMARA
 
     //-- IMU variables
     double acc_x, acc_y, acc_z, angImu_x, angImu_y, angImu_z, spd_x, spd_y, spd_z, mag_x, mag_y, mag_z; // IMU inputs
+    double offXimu, offYimu, offZimu; // eliminar el Offset del sensor IMU
     //-- IMU LOW-FILTER variables & CONVERTION
     double ddx, ddy, ddz, ddx_robot, ddy_robot, ddz_robot; // additional acc variables
 
@@ -237,7 +373,8 @@ private:
     //, Xzmp_b, Yzmp_b, Xzmp_c, Xzmp_off; // x, y, z en [cm]
 
     //-- CONTROL/MOVEMENT variables
-    float X, ref, X2, ang_ref, ref2, y2, _angle_ref, _angle_ref_1, _angle_ref_a, _angle_ref_b, _angle_ref_c, _angle_ref_d, ka;
+    float X, ref, X2, ref2, y2, _angle_ref, _angle_ref_1, _angle_ref_a, _angle_ref_b, _angle_ref_c, _angle_ref_d, ka;
+    double ang_ref, ang_ref2;
     double _angulo, _angulo2, seno_x, seno_z, coseno_z, radianes; //Angulo para compensar las componentes de la aceleración en el modelo cart-table,
                               //Angulo2 para invertir los angulos negativos
     //-- SET & PID variables
@@ -252,4 +389,3 @@ private:
 };
 
 #endif
-

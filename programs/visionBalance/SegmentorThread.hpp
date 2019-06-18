@@ -125,7 +125,7 @@ private:
     int outImage;
     int seeBounding;
     int threshold;
-
+    
     // end global
     double fx_d,fy_d,cx_d,cy_d,fx_rgb,fy_rgb,cx_rgb,cy_rgb;
     //
@@ -135,10 +135,13 @@ private:
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* outCropSelectorImg;
     yarp::os::Port* inCropSelectorPort;
     DataProcessor processor;
-
+void sig_action(int signal, siginfo_t *s, void *user)
+    {
+      shutdown_flag = 1;
+    }
 public:
     SegmentorThread() : PeriodicThread(DEFAULT_RATE_MS * 0.001) {}
-
+  sig_atomic_t shutdown_flag = 0;
     char*
     isometryToString(const Eigen::Isometry3d& m, yarp::os::Bottle &output_angles)
     {

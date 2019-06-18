@@ -7,7 +7,3 @@ yarp_install(FILES ymanager.ini
 
 ### Go through single applications
 
-add_subdirectory(colorRegionDetection)
-add_subdirectory(haarDetection)
-#add_subdirectory(pointAtObject)  # never had a cmake
-add_subdirectory(sensors)

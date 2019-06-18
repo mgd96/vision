@@ -6,8 +6,8 @@ namespace roboticslab
 {
 
 /************************************************************************/
-void SegmentorThread::setIKinectDeviceDriver(yarp::dev::IOpenNI2DeviceDriver *_kinect) {
-    kinect = _kinect;
+void SegmentorThread::setIRGBDSensor(yarp::dev::IRGBDSensor *_iRGBDSensor) {
+    iRGBDSensor = _iRGBDSensor;
 }
 
 /************************************************************************/
@@ -20,10 +20,15 @@ void SegmentorThread::setOutPort(yarp::os::Port * _pOutPort) {
     pOutPort = _pOutPort;
 }
 
+
 /************************************************************************/
 void SegmentorThread::init(yarp::os::ResourceFinder &rf) {
 
+yarp::os::Property rgbIntrinsicParams;
+    yarp::os::Property depthIntrinsicParams;
 
+    iRGBDSensor->getRgbIntrinsicParam(rgbIntrinsicParams);
+    iRGBDSensor->getDepthIntrinsicParam(depthIntrinsicParams);
 
     fx_d = depthIntrinsicParams.find("focalLengthX").asFloat64();
     fy_d = depthIntrinsicParams.find("focalLengthY").asFloat64();
@@ -51,24 +56,14 @@ void SegmentorThread::init(yarp::os::ResourceFinder &rf) {
     if (rf.check("help")) {
         printf("SegmentorThread options:\n");
         printf("\t--help (this help)\t--from [file.ini]\t--context [path]\n");
-
-        printf("\t--fx_d (default: \"%f\")\n",fx_d);
-        printf("\t--fy_d (default: \"%f\")\n",fy_d);
-        printf("\t--cx_d (default: \"%f\")\n",cx_d);
-        printf("\t--cy_d (default: \"%f\")\n",cy_d);
-        printf("\t--fx_rgb (default: \"%f\")\n",fx_rgb);
-        printf("\t--fy_rgb (default: \"%f\")\n",fy_rgb);
-        printf("\t--cx_rgb (default: \"%f\")\n",cx_rgb);
-        printf("\t--cy_rgb (default: \"%f\")\n",cy_rgb);
-
         printf("\t--algorithm (default: \"%s\")\n",algorithm.c_str());
         printf("\t--locate (centroid or bottom; default: \"%s\")\n",locate.c_str());
         printf("\t--maxNumBlobs (default: \"%d\")\n",maxNumBlobs);
         printf("\t--morphClosing (percentage, 2 or 4 okay; default: \"%f\")\n",morphClosing);
         printf("\t--morphOpening (percentage, 2 or 4 okay; default: \"%f\")\n",morphOpening);
         printf("\t--outFeatures (mmX,mmY,mmZ,pxXpos,pxYpos,pxX,pxY,angle,area,aspectRatio,rectangularity,axisFirst,axisSecond \
-               solidity,hue,sat,val,hueStdDev,satStdDev,valStdDev,time; \
-                default: \"(%s)\")\n",outFeatures.toString().c_str());
+solidity,hue,sat,val,hueStdDev,satStdDev,valStdDev,time; \
+default: \"(%s)\")\n",outFeatures.toString().c_str());
         printf("\t--outFeaturesFormat (0=bottled,1=minimal; default: \"%d\")\n",outFeaturesFormat);
         printf("\t--outImage (0=rgb,1=bin; default: \"%d\")\n",outImage);
         printf("\t--rateMs (default: \"%d\")\n",rateMs);
@@ -77,41 +72,33 @@ void SegmentorThread::init(yarp::os::ResourceFinder &rf) {
         // Do not exit: let last layer exit so we get help from the complete chain.
     }
 
-    if (rf.check("fx_d")) fx_d = rf.find("fx_d").asDouble();
-    if (rf.check("fy_d")) fy_d = rf.find("fy_d").asDouble();
-    if (rf.check("cx_d")) cx_d = rf.find("cx_d").asDouble();
-    if (rf.check("cy_d")) cy_d = rf.find("cy_d").asDouble();
-    if (rf.check("fx_rgb")) fx_rgb = rf.find("fx_rgb").asDouble();
-    if (rf.check("fy_rgb")) fy_rgb = rf.find("fy_rgb").asDouble();
-    if (rf.check("cx_rgb")) cx_rgb = rf.find("cx_rgb").asDouble();
-    if (rf.check("cy_rgb")) cy_rgb = rf.find("cy_rgb").asDouble();
     if (rf.check("algorithm")) algorithm = rf.find("algorithm").asString();
     if (rf.check("locate")) locate = rf.find("locate").asString();
-    if (rf.check("maxNumBlobs")) maxNumBlobs = rf.find("maxNumBlobs").asInt();
-    if (rf.check("morphClosing")) morphClosing = rf.find("morphClosing").asDouble();
-    if (rf.check("morphOpening")) morphOpening = rf.find("morphOpening").asDouble();
-    if (rf.check("outFeaturesFormat")) outFeaturesFormat = rf.find("outFeaturesFormat").asInt();
+    if (rf.check("maxNumBlobs")) maxNumBlobs = rf.find("maxNumBlobs").asInt32();
+    if (rf.check("morphClosing")) morphClosing = rf.find("morphClosing").asFloat64();
+    if (rf.check("morphOpening")) morphOpening = rf.find("morphOpening").asFloat64();
+    if (rf.check("outFeaturesFormat")) outFeaturesFormat = rf.find("outFeaturesFormat").asInt32();
 
     printf("SegmentorThread using fx_d: %f, fy_d: %f, cx_d: %f, cy_d: %f.\n",
-           fx_d,fy_d,cx_d,cy_d);
+        fx_d,fy_d,cx_d,cy_d);
     printf("SegmentorThread using fx_rgb: %f, fy_rgb: %f, cx_rgb: %f, cy_rgb: %f.\n",
-           fx_rgb,fy_rgb,cx_rgb,cy_rgb);
+        fx_rgb,fy_rgb,cx_rgb,cy_rgb);
     printf("SegmentorThread using algorithm: %s, locate: %s.\n",
-           algorithm.c_str(),locate.c_str());
+        algorithm.c_str(),locate.c_str());
     printf("SegmentorThread using maxNumBlobs: %d, morphClosing: %.2f, outFeaturesFormat: %d.\n",
-           maxNumBlobs,morphClosing,outFeaturesFormat);
+        maxNumBlobs,morphClosing,outFeaturesFormat);
 
     if (rf.check("outFeatures")) {
         outFeatures = *(rf.find("outFeatures").asList());  // simple overrride
     }
     printf("SegmentorThread using outFeatures: (%s).\n", outFeatures.toString().c_str());
 
-    if (rf.check("outImage")) outImage = rf.find("outImage").asInt();
-    if (rf.check("rateMs")) rateMs = rf.find("rateMs").asInt();
-    if (rf.check("threshold")) threshold = rf.find("threshold").asInt();
-    if (rf.check("seeBounding")) seeBounding = rf.find("seeBounding").asInt();
+    if (rf.check("outImage")) outImage = rf.find("outImage").asInt32();
+    if (rf.check("rateMs")) rateMs = rf.find("rateMs").asInt32();
+    if (rf.check("threshold")) threshold = rf.find("threshold").asInt32();
+    if (rf.check("seeBounding")) seeBounding = rf.find("seeBounding").asInt32();
     printf("SegmentorThread using outImage: %d, rateMs: %d, seeBounding: %d, threshold: %d.\n",
-           outImage, rateMs, seeBounding, threshold);
+        outImage, rateMs, seeBounding, threshold);
 
     printf("--------------------------------------------------------------\n");
     if(rf.check("help")) {
@@ -123,22 +110,18 @@ void SegmentorThread::init(yarp::os::ResourceFinder &rf) {
         inCropSelectorPort->setReader(processor);
     }
 
-    this->setRate(rateMs);
-    this->start();
+    // Wait for the first few frames to arrive. We kept receiving invalid pixel codes
+    // from the depthCamera device if started straight away.
+    yarp::os::Time::delay(1);
 
+    this->setPeriod(rateMs * 0.001);
+    this->start();
 }
 
 /************************************************************************/
 void SegmentorThread::run() {
 
-    fx_d = DEFAULT_FX_D;
-    fy_d = DEFAULT_FY_D;
-    cx_d = DEFAULT_CX_D;
-    cy_d = DEFAULT_CY_D;
-    fx_rgb = DEFAULT_FX_RGB;
-    fy_rgb = DEFAULT_FY_RGB;
-    cx_rgb = DEFAULT_CX_RGB;
-    cy_rgb = DEFAULT_CY_RGB;
+     
 
     // initialize the device
     fovis_example::DataCapture* cap = new fovis_example::DataCapture();

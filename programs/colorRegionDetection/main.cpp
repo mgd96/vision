@@ -10,16 +10,16 @@
  *
  * @section colorRegionDetection_options ColorRegionDetection options:
  *
- * |PROPERTY     | DESCRIPTION                           | DEFAULT               |
- * |-------------|---------------------------------------|-----------------------|
- * |help         |                                       |                       |
- * |from         |file.ini                               |                       |
- * |context      |path                                   |                       |
- * |cropSelector |                                       | 0                     |
- * |RGBDDevice   |device we create                       | RGBDSensorClient      |
- * |RGBDLocal    |if accesing remote, local port name    | /colorRegionDetection |
- * |RGBDRemote   |if accesing remote, remote port name   | /rgbd                 |
- * |watchdog     |                                       | 2.000000              |
+ * |PROPERTY     | DESCRIPTION                           | DEFAULT              |
+ * |-------------|---------------------------------------|----------------------|
+ * |help         |                                       |                      |
+ * |from         |file.ini                               |                      |
+ * |context      |path                                   |                      |
+ * |cropSelector |                                       | 0                    |
+ * |kinectDevice |device we create                       | OpenNI2DeviceServer  |
+ * |kinectLocal  |if accesing remote, local port name    | /colorRegionDetection                 |
+ * |kinectRemote |if accesing remote, remote port name   | /OpenNI2             |
+ * |watchdog     |                                       | 2.000000             |
  *
  *
  * @section segmentorthread_options SegmentorThread options:
@@ -29,6 +29,14 @@
  * |help                 |                               |                      |
  * |from                 |file.ini                       |                      |
  * |context              |path                           |                      |
+ * |fx_d                 |                               |525.000000            |
+ * |fy_d                 |                               |525.000000            |
+ * |cx_d                 |                               |319.500000            |
+ * |cy_d                 |                               |239.500000            |
+ * |fx_rgb               |                               |525.000000            |
+ * |fy_rgb               |                               |525.000000            |
+ * |cx_rgb               |                               |319.500000            |
+ * |cy_rgb               |                               |239.500000            |
  * |algorithm            |                               |blueMinusRed          |
  * |locate               |centroid or bottom             |centroid              |
  * |maxNumBlobs          |                               |2                     |
@@ -65,7 +73,7 @@ int main(int argc, char** argv) {
     yarp::os::Network yarp;
     if (!yarp.checkNetwork()) {
         fprintf(stderr,"[fail]\n%s found no yarp network (try running \"yarpserver &\"), bye!\n",argv[0]);
-        return 1;
+        return -1;
     } else printf("[ok]\n");
 
     return mod.runModule(rf);

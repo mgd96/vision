@@ -7,22 +7,38 @@
 #include <yarp/os/Network.h>
 #include <yarp/os/Port.h>
 #include <yarp/os/BufferedPort.h>
+//#include <yarp/os/RateThread.h>
 #include <yarp/os/PeriodicThread.h>
 #include <yarp/os/Property.h>
-
 #include <yarp/dev/all.h>
 #include <yarp/dev/IRGBDSensor.h>
-
 #include <yarp/sig/all.h>
 
-#include <cv.h>
-//#include <highgui.h> // to show windows
 
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <string>
+#include <stdio.h>
+#include <cv.h>
+#include <highgui.h> // to show windows
+#include "math.h";
+
+
+//fovis
+#include <fovis/fovis.hpp>
+#include "data_capture.hpp"
+
+
+#include <iostream>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include "TravisLib.hpp"
+//#include "TravisLib.hpp"
+using namespace std;
+using namespace cv;
+
 
 #define DEFAULT_ALGORITHM "blueMinusRed"
 #define DEFAULT_LOCATE "centroid"
@@ -35,6 +51,8 @@
 #define DEFAULT_RATE_MS 20
 #define DEFAULT_SEE_BOUNDING 3
 #define DEFAULT_THRESHOLD 55
+
+
 
 
 namespace roboticslab
@@ -107,7 +125,8 @@ private:
     int outImage;
     int seeBounding;
     int threshold;
-    //
+
+    // end global
     double fx_d,fy_d,cx_d,cy_d,fx_rgb,fy_rgb,cx_rgb,cy_rgb;
     //
     yarp::os::Bottle outFeatures;
@@ -119,6 +138,45 @@ private:
 
 public:
     SegmentorThread() : PeriodicThread(DEFAULT_RATE_MS * 0.001) {}
+
+    char*
+    isometryToString(const Eigen::Isometry3d& m, yarp::os::Bottle &output_angles)
+    {
+
+      char *result = (char *) malloc(sizeof(char) * 3);
+
+      memset(result, 0, sizeof(result));
+      Eigen::Vector3d xyz = m.translation();
+      Eigen::Vector3d rpy = m.rotation().eulerAngles(0, 1, 2);
+       snprintf(result, 79, "%6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f");
+
+      double angx=(rpy(0) * 180/M_PI);
+      double angy=(rpy(1) * 180/M_PI);
+      double angz=(rpy(2) * 180/M_PI);
+
+      if (angx>100)  angx=angx-180;
+      if (angy>100)  angy=angy-180;
+      if (angz>100)  angz=angz-180;
+
+      if (angx<-100)  angx=angx+180;
+      if (angy<-100)  angy=angy+180;
+      if (angz<-100)  angz=angz+180;
+
+      result[0]=angx;
+      result[1]=angy;
+      result[2]=angz;
+
+      output_angles.addDouble(angx);
+      output_angles.addDouble(angy);
+      output_angles.addDouble(angz);
+
+
+      cout<<"ang x= "<<angx<<" ang y= "<<angz<<" ang z= "<<angy<<endl;
+
+      return result;
+    }
+
+
 
     void setIRGBDSensor(yarp::dev::IRGBDSensor * _iRGBDSensor);
     void setOutImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > * _pOutImg);

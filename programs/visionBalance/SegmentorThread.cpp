@@ -122,7 +122,7 @@ default: \"(%s)\")\n",outFeatures.toString().c_str());
 void SegmentorThread::run() {
 
      
-
+        printf("entro en run");
     // initialize the device
     fovis_example::DataCapture* cap = new fovis_example::DataCapture();
     if(!cap->initialize()) {

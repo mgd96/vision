@@ -6,4 +6,4 @@ yarp_install(FILES ymanager.ini
              DESTINATION ${ROBOTICSLAB-VISION_DATA_INSTALL_DIR})
 
 ### Go through single applications
-
+add_subdirectory(visionBalance)

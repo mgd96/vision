@@ -68,6 +68,13 @@ int main(int argc, char** argv) {
         return 1;
     } else printf("[ok]\n");
 
-    return mod.runModule(rf);
+    if (mod.configure(rf))
+    {
+        return mod.runModule();
+    }
+    else
+    {
+        return mod.close() ? 0 : 1;
+    }
 }
 

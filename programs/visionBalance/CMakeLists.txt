@@ -25,9 +25,11 @@ include_directories(${LIBFREENECT_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS})
     add_executable(visionBalance main.cpp
                                  VisionBalance.hpp
                                  VisionBalance.cpp
-                                 SegmentorThread.hpp
-                                 SegmentorThread.cpp
-				 data_capture.cpp)
+				 data_capture.cpp
+		                 data_capture.hpp
+			         SegmentorThread.cpp
+				 SegmentorThread.hpp
+				 )
 
 
     target_link_libraries(visionBalance YARP::YARP_OS
@@ -35,9 +37,9 @@ include_directories(${LIBFREENECT_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS})
                                         YARP::YARP_dev
                                         YARP::YARP_sig
                                         ${OpenCV_LIBS}
-                                           ${LIBFREENECT_LIBS}
-                                           fovis
-                                           TravisLib)
+                                        ${LIBFREENECT_LIBS}
+                                        fovis
+                                        TravisLib)
 
     install(TARGETS visionBalance
             DESTINATION ${CMAKE_INSTALL_BINDIR})

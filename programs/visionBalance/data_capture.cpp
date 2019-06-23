@@ -53,7 +53,7 @@ DataCapture::initialize()
 
   if (freenect_open_device(f_ctx, &f_dev, device_number) < 0) {
     printf("Could not open device\n");
-    return false;
+    //return false;
   }
 
   freenect_set_user(f_dev, this);
@@ -71,16 +71,16 @@ bool
 DataCapture::startDataCapture()
 {
   // start data capture
-  printf("Starting data capture\n");
+  printf("Starting data capturer\n");
 
   freenect_set_tilt_degs(f_dev, freenect_angle);
   freenect_set_led(f_dev, LED_OFF);
   freenect_set_depth_callback(f_dev, &DataCapture::depth_cb);
   freenect_set_video_callback(f_dev, &DataCapture::image_cb);
-
+  printf("llego aqui 1\n");
   freenect_start_depth(f_dev);
   freenect_start_video(f_dev);
-
+  printf("llego aqui 2\n");	
   return true;
 }
 

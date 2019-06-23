@@ -5,12 +5,12 @@
 
 #include "SegmentorThread.hpp"
 
-#define DEFAULT_CROP_SELECTOR 0  // 1=true
-#define DEFAULT_RGBD_DEVICE "RGBDSensorClient"
-#define DEFAULT_RGBD_LOCAL "/visionBalance"
-#define DEFAULT_RGBD_REMOTE "/rgbd"
-#define DEFAULT_WATCHDOG    2       // [s]
+#include <yarp/os/Port.h>
+#include <yarp/os/RFModule.h>
 
+#include <fovis/fovis.hpp>
+
+#include "data_capture.hpp"
 
 namespace roboticslab
 {
@@ -21,29 +21,21 @@ namespace roboticslab
  * @brief Computer Vision 1.
  */
 class VisionBalance : public yarp::os::RFModule {
-  private:
-    SegmentorThread segmentorThread;
-    //
-    yarp::dev::PolyDriver dd;
-    yarp::dev::IRGBDSensor *iRGBDSensor;
+  public:
+    VisionBalance();
 
-    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > outImg;
-    yarp::os::Port outPort;
-
-    int cropSelector;
-    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > outCropSelectorImg;
-    yarp::os::Port inCropSelectorPort;
-
+    bool configure(yarp::os::ResourceFinder &rf);
     bool interruptModule();
     double getPeriod();
     bool updateModule();
-    double watchdog;
+    bool close();
 
-  public:
-    bool configure(yarp::os::ResourceFinder &rf);
+  private:
+    yarp::os::Port outPort;
+    fovis_example::DataCapture * cap;
+    fovis::VisualOdometry * odom;
 };
 
 }  // namespace roboticslab
 
 #endif  // __VISION_BALANCE_HPP__
-

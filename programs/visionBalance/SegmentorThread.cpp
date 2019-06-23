@@ -4,7 +4,7 @@
 
 namespace roboticslab
 {
-
+ yarp::os::Bottle output_angles;
 /************************************************************************/
 void SegmentorThread::setIRGBDSensor(yarp::dev::IRGBDSensor *_iRGBDSensor) {
     iRGBDSensor = _iRGBDSensor;
@@ -23,9 +23,10 @@ void SegmentorThread::setOutPort(yarp::os::Port * _pOutPort) {
 
 /************************************************************************/
 void SegmentorThread::init(yarp::os::ResourceFinder &rf) {
-
-yarp::os::Property rgbIntrinsicParams;
+      printf("entro en init");
+    yarp::os::Property rgbIntrinsicParams;
     yarp::os::Property depthIntrinsicParams;
+   
 
     iRGBDSensor->getRgbIntrinsicParam(rgbIntrinsicParams);
     iRGBDSensor->getDepthIntrinsicParam(depthIntrinsicParams);
@@ -122,7 +123,7 @@ default: \"(%s)\")\n",outFeatures.toString().c_str());
 void SegmentorThread::run() {
 
      
-        printf("entro en run");
+        fprintf(stdout,"entro en run-------\n");
     // initialize the device
     fovis_example::DataCapture* cap = new fovis_example::DataCapture();
     if(!cap->initialize()) {
@@ -161,8 +162,8 @@ void SegmentorThread::run() {
         fprintf(stderr, "Capture failed\n");
         break;
       }
-      yarp::os::Bottle output_angles;
-
+     
+      cout<<"llego"<<endl;
       odom->processFrame(cap->getGrayImage(), cap->getDepthImage());
 
       // get the integrated pose estimate.

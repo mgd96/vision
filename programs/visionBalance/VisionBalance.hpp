@@ -23,7 +23,7 @@ namespace roboticslab
 class VisionBalance : public yarp::os::RFModule {
   public:
     VisionBalance();
-
+    
     bool configure(yarp::os::ResourceFinder &rf);
     bool interruptModule();
     double getPeriod();
@@ -32,8 +32,8 @@ class VisionBalance : public yarp::os::RFModule {
 
   private:
     yarp::os::Port outPort;
-    fovis_example::DataCapture * cap;
-    fovis::VisualOdometry * odom;
+    SegmentorThread segmentorThread;
+    
 };
 
 }  // namespace roboticslab

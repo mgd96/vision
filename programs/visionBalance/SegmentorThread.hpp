@@ -7,7 +7,6 @@
 #include <yarp/os/Network.h>
 #include <yarp/os/Port.h>
 #include <yarp/os/BufferedPort.h>
-//#include <yarp/os/RateThread.h>
 #include <yarp/os/PeriodicThread.h>
 #include <yarp/os/Property.h>
 #include <yarp/dev/all.h>
@@ -22,7 +21,7 @@
 #include <stdio.h>
 #include <cv.h>
 #include <highgui.h> // to show windows
-#include "math.h";
+#include "math.h"
 
 
 //fovis
@@ -112,46 +111,39 @@ public:
  */
 class SegmentorThread : public yarp::os::PeriodicThread {
 private:
-    yarp::dev::IRGBDSensor *iRGBDSensor;
-    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > *pOutImg;  // for testing
+    /*yarp::dev::IRGBDSensor *iRGBDSensor;
+    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > *pOutImg;  // for testing*/
+    
     yarp::os::Port *pOutPort;
+   
+
     //
-    std::string algorithm;
-    std::string locate;
-    int maxNumBlobs;
-    double morphClosing;
-    double morphOpening;
-    int outFeaturesFormat;
-    int outImage;
-    int seeBounding;
-    int threshold;
     
     // end global
     double fx_d,fy_d,cx_d,cy_d,fx_rgb,fy_rgb,cx_rgb,cy_rgb;
     //
-    yarp::os::Bottle outFeatures;
+   
     //
-    int cropSelector;
-    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* outCropSelectorImg;
-    yarp::os::Port* inCropSelectorPort;
-    DataProcessor processor;
+    
 void sig_action(int signal, siginfo_t *s, void *user)
     {
       shutdown_flag = 1;
     }
+
 public:
     SegmentorThread() : PeriodicThread(DEFAULT_RATE_MS * 0.001) {}
-  sig_atomic_t shutdown_flag = 0;
-    char*
+    sig_atomic_t shutdown_flag = 0;
+
+    void
     isometryToString(const Eigen::Isometry3d& m, yarp::os::Bottle &output_angles)
     {
 
-      char *result = (char *) malloc(sizeof(char) * 3);
+      //char *result = (char *) malloc(sizeof(char) * 3);
 
-      memset(result, 0, sizeof(result));
+      //memset(result, 0, sizeof(result));
       Eigen::Vector3d xyz = m.translation();
       Eigen::Vector3d rpy = m.rotation().eulerAngles(0, 1, 2);
-       snprintf(result, 79, "%6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f");
+      //snprintf(result, 79, "%6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f");
 
       double angx=(rpy(0) * 180/M_PI);
       double angy=(rpy(1) * 180/M_PI);
@@ -165,9 +157,10 @@ public:
       if (angy<-100)  angy=angy+180;
       if (angz<-100)  angz=angz+180;
 
+      /*
       result[0]=angx;
       result[1]=angy;
-      result[2]=angz;
+      result[2]=angz;*/
 
       output_angles.addDouble(angx);
       output_angles.addDouble(angy);
@@ -175,21 +168,14 @@ public:
 
 
       cout<<"ang x= "<<angx<<" ang y= "<<angz<<" ang z= "<<angy<<endl;
-
-      return result;
+      //pOutPort->write(output_angles);
+      //return result;
     }
 
-
-
-    void setIRGBDSensor(yarp::dev::IRGBDSensor * _iRGBDSensor);
-    void setOutImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> > * _pOutImg);
     void setOutPort(yarp::os::Port *_pOutPort);
     void init(yarp::os::ResourceFinder &rf);
     void run();  // The periodical function
 
-    void setCropSelector(int cropSelector) { this->cropSelector = cropSelector; }
-    void setOutCropSelectorImg(yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >* outCropSelectorImg) { this->outCropSelectorImg = outCropSelectorImg; }
-    void setInCropSelectorPort(yarp::os::Port* inCropSelectorPort) { this->inCropSelectorPort = inCropSelectorPort; }
 
 };
 

@@ -16,7 +16,7 @@
  * |from         |file.ini                               |                       |
  * |context      |path                                   |                       |
  * |cropSelector |                                       | 0                     |
- * |RGBDDevice   |device we create                       | RGBDSensorClient      |
+                       | RGBDSensorClient      |
  * |RGBDLocal    |if accesing remote, local port name    | /colorRegionDetection |
  * |RGBDRemote   |if accesing remote, remote port name   | /rgbd                 |
  * |watchdog     |                                       | 2.000000              |

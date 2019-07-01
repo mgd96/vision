@@ -62,7 +62,7 @@ public:
             if (n < 300){ang_ref = 0.0;}
             if(n>=300 && n<=330){
                 //ang_ref = -((5/30)*n-50);
-                ang_ref = 1*n;
+                ang_ref = 1*-n;
                 ang_ref = ang_ref/30;
                 ang_ref = ang_ref-10;
             } // variar desde 1 a 10 grados
@@ -109,6 +109,8 @@ public:
         act_loop = Time::now() - init_loop;
     }
 
+
+
     void offsetIMU()    {
 
         readSensors(); // lectura de la CAM e IMU
@@ -130,6 +132,9 @@ public:
 
     }
 
+
+
+
     void readSensors(){
 
         Bottle ch0;
@@ -138,9 +143,9 @@ public:
         Bottle camera;
 
   /*      portft0.read(ch0); // lectura del sensor JR3 ch0
-        portft1.read(ch1); // lectura del sensor JR3 ch1
+          portft1.read(ch1); // lectura del sensor JR3 ch1
  */       portImu.read(imu); // lectura del sensor IMU
-        portCamera.read(camera); // lectura del sensor Camera
+          portCamera.read(camera); // lectura del sensor Camera
 
         //--- CAMERA-Sensor
         angCam_x = camera.get(0).asDouble();
@@ -166,7 +171,7 @@ public:
         angImu_x = imu.get(0).asDouble(); // Angulo en X [deg]
         angImu_y = imu.get(1).asDouble(); // Angulo en Y [deg]
         angImu_z = imu.get(2).asDouble(); // Angulo en Z [deg]
-/*        acc_x = imu.get(3).asDouble(); //Linear acceleration in X [m/s^2]
+/*      acc_x = imu.get(3).asDouble(); //Linear acceleration in X [m/s^2]
         x_sensor.push_front(acc_x);
         x_sensor.pop_back();
         acc_y = imu.get(4).asDouble(); //Linear acceleration in Y [m/s^2]
